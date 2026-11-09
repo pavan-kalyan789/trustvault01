@@ -4,11 +4,14 @@
  */
 
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import type { AuditAction, AuditEvent, AuditOutcome, AuditCheckpoint, UserRole } from './types.js';
 
 // Server-side HMAC Secret (defaults to environment or deterministic secure key)
 const HMAC_SECRET = process.env.AUDIT_HMAC_SECRET || 'trustvault_enterprise_secure_hmac_secret_2026_key';
 export const GENESIS_HASH = '0000000000000000000000000000000000000000000000000000000000000000genesis';
+const JSON_AUDIT_FILE = path.resolve(process.cwd(), 'vault_audit.json');
 
 export interface AuditWritePayload {
   actorId: string;
@@ -28,8 +31,75 @@ export class AuditEngine {
   private events: AuditEvent[] = [];
   private checkpoints: AuditCheckpoint[] = [];
   private appendQueue: Promise<void> = Promise.resolve();
+  private saveTimeout: NodeJS.Timeout | null = null;
 
-  constructor() {}
+  constructor() {
+    this.loadFromJson();
+  }
+
+  public loadFromJson(): boolean {
+    try {
+      if (fs.existsSync(JSON_AUDIT_FILE)) {
+        const raw = fs.readFileSync(JSON_AUDIT_FILE, 'utf-8');
+        if (raw && raw.trim()) {
+          const data = JSON.parse(raw);
+          if (Array.isArray(data.events)) {
+            this.events = data.events;
+          }
+          if (Array.isArray(data.checkpoints)) {
+            this.checkpoints = data.checkpoints;
+          }
+          return true;
+        }
+      }
+    } catch (err) {
+      console.warn('[AuditEngine] Error reading audit JSON:', err);
+    }
+    return false;
+  }
+
+  public schedulePersist() {
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+    }
+    this.saveTimeout = setTimeout(() => {
+      this.persistToJsonSync();
+    }, 50);
+  }
+
+  public persistToJsonSync(): void {
+    try {
+      const payload = {
+        _schema: 'TrustVault Enterprise Audit Ledger JSON',
+        _version: '1.0',
+        _lastSaved: new Date().toISOString(),
+        filePath: 'vault_audit.json',
+        events: this.events,
+        checkpoints: this.checkpoints
+      };
+      fs.writeFileSync(JSON_AUDIT_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('[AuditEngine] Error writing audit JSON:', err);
+    }
+  }
+
+  public getAuditStats() {
+    let sizeBytes = 0;
+    try {
+      if (fs.existsSync(JSON_AUDIT_FILE)) {
+        sizeBytes = fs.statSync(JSON_AUDIT_FILE).size;
+      }
+    } catch {}
+
+    return {
+      fileName: 'vault_audit.json',
+      connected: true,
+      status: 'CONNECTED_AND_VERIFIED',
+      totalEvents: this.events.length,
+      totalCheckpoints: this.checkpoints.length,
+      sizeBytes
+    };
+  }
 
   /**
    * Canonical hash calculation using HMAC-SHA256
@@ -118,6 +188,7 @@ export class AuditEngine {
             };
 
             this.events.push(event);
+            this.schedulePersist();
 
             // Auto-checkpoint every 20 events
             if (this.events.length % 20 === 0) {

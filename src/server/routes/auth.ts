@@ -5,6 +5,8 @@
  */
 
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import express, { type Response } from 'express';
 import { z } from 'zod';
 import { vaultStore } from '../store.js';
@@ -325,26 +327,65 @@ authRouter.get('/me', authenticateUser, async (req: AuthenticatedRequest, res: R
 });
 
 /**
+ * Helper to detect any service account or Firebase JSON credentials file in the workspace
+ */
+function findServiceAccountJson(): { fileName: string; data: any } | null {
+  const candidateFiles = [
+    'serviceAccountKey.json',
+    'firebase-service-account.json',
+    'service-account.json',
+    'firebase-key.json',
+    'firebase-credentials.json',
+    'firebase-applet-config.json'
+  ];
+
+  if (process.env.GOOGLE_APPLICATION_CREDENTIALS) {
+    candidateFiles.unshift(process.env.GOOGLE_APPLICATION_CREDENTIALS);
+  }
+
+  for (const f of candidateFiles) {
+    try {
+      const fullPath = path.isAbsolute(f) ? f : path.resolve(process.cwd(), f);
+      if (fs.existsSync(fullPath)) {
+        const content = fs.readFileSync(fullPath, 'utf-8');
+        const parsed = JSON.parse(content);
+        if (parsed && (parsed.project_id || parsed.projectId || parsed.type === 'service_account')) {
+          return { fileName: f, data: parsed };
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
+/**
  * GET /api/auth/firebase-status
- * Reports exact Firebase configuration status for deployment transparency.
+ * Reports exact Firebase configuration status and connected JSON credentials.
  */
 authRouter.get('/firebase-status', (req: express.Request, res: Response) => {
-  const hasProjectId = Boolean(process.env.FIREBASE_PROJECT_ID);
-  const hasClientEmail = Boolean(process.env.FIREBASE_CLIENT_EMAIL);
-  const hasPrivateKey = Boolean(process.env.FIREBASE_PRIVATE_KEY);
-  const isFullyConfigured = hasProjectId && hasClientEmail && hasPrivateKey;
+  const jsonCredentials = findServiceAccountJson();
+
+  const projectId = process.env.FIREBASE_PROJECT_ID || jsonCredentials?.data?.project_id || jsonCredentials?.data?.projectId;
+  const clientEmail = process.env.FIREBASE_CLIENT_EMAIL || jsonCredentials?.data?.client_email;
+  const privateKey = process.env.FIREBASE_PRIVATE_KEY || jsonCredentials?.data?.private_key;
+
+  const isFullyConfigured = Boolean(projectId && (clientEmail || jsonCredentials));
 
   res.status(200).json({
     success: true,
     firebaseConfigured: isFullyConfigured,
-    provider: isFullyConfigured ? 'Firebase Authentication & Firestore' : 'TrustVault Zero-Trust Local Vault Provider',
+    connectedJsonFile: jsonCredentials?.fileName || null,
+    provider: isFullyConfigured
+      ? `Firebase Authentication & Firestore (${jsonCredentials ? jsonCredentials.fileName : 'Environment Keys'})`
+      : 'TrustVault Connected JSON Database (vault_database.json)',
     details: {
-      projectId: hasProjectId ? process.env.FIREBASE_PROJECT_ID : 'Not set',
-      clientEmail: hasClientEmail ? 'Configured' : 'Missing',
-      privateKey: hasPrivateKey ? 'Configured' : 'Missing'
+      projectId: projectId || 'Not set',
+      clientEmail: clientEmail ? 'Configured' : (jsonCredentials ? 'Loaded from JSON' : 'Missing'),
+      privateKey: privateKey ? 'Configured' : (jsonCredentials ? 'Loaded from JSON' : 'Missing'),
+      jsonFileConnected: jsonCredentials !== null
     },
     message: isFullyConfigured
-      ? 'Firebase Authentication & Admin SDK are active.'
-      : 'Firebase credentials are not set in environment. Running in zero-configuration local encrypted vault mode.'
+      ? `Firebase credentials connected successfully via ${jsonCredentials ? jsonCredentials.fileName : 'environment variables'}.`
+      : 'Zero-configuration mode active. All records are connected and persisted locally in vault_database.json and vault_audit.json.'
   });
 });

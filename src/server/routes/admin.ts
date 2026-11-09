@@ -83,3 +83,79 @@ adminRouter.get('/security-alerts', authenticateUser, requireRole(['admin']), as
     res.status(500).json({ error: 'InternalServerError', message: 'Failed to retrieve security alerts.' });
   }
 });
+
+/**
+ * GET /api/admin/json-database
+ * Retrieves status, file connection, and storage stats for connected JSON files
+ */
+adminRouter.get('/json-database', authenticateUser, requireRole(['admin']), async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const dbStats = vaultStore.getDatabaseStats();
+    const auditStats = auditEngine.getAuditStats();
+
+    res.json({
+      success: true,
+      database: dbStats,
+      audit: auditStats,
+      persistedAt: new Date().toISOString()
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'InternalServerError', message: 'Failed to retrieve JSON database status.' });
+  }
+});
+
+/**
+ * GET /api/admin/json-database/export
+ * Exports the complete connected JSON database file for backup or local migration
+ */
+adminRouter.get('/json-database/export', authenticateUser, requireRole(['admin']), async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const jsonString = vaultStore.exportJson();
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="vault_database_export.json"');
+    res.send(jsonString);
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'InternalServerError', message: 'Failed to export JSON database.' });
+  }
+});
+
+/**
+ * POST /api/admin/json-database/import
+ * Imports records from a provided JSON database into the active vault store
+ */
+adminRouter.post('/json-database/import', authenticateUser, requireRole(['admin']), async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+  try {
+    const { jsonContent } = req.body;
+    if (!jsonContent || typeof jsonContent !== 'string') {
+      res.status(400).json({ success: false, error: 'BadRequest', message: 'jsonContent string is required.' });
+      return;
+    }
+
+    const result = vaultStore.importJson(jsonContent);
+
+    if (req.user) {
+      await auditEngine.logEvent({
+        actorId: req.user.id,
+        actorEmail: req.user.email,
+        actorRole: req.user.role,
+        action: 'METADATA_UPDATE',
+        outcome: 'SUCCESS',
+        ip: req.ip || '127.0.0.1',
+        userAgent: req.headers['user-agent'] || 'unknown',
+        metadata: {
+          actionDetail: 'JSON_DATABASE_IMPORT',
+          importedCounts: result.importedCounts
+        }
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'JSON database successfully imported and synced to vault_database.json',
+      importedCounts: result.importedCounts
+    });
+  } catch (err: any) {
+    res.status(400).json({ success: false, error: 'BadRequest', message: err.message || 'Failed to import JSON database.' });
+  }
+});
+

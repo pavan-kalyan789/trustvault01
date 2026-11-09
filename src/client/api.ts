@@ -76,14 +76,48 @@ export interface SecurityTestReport {
 export interface FirebaseStatusInfo {
   success: boolean;
   firebaseConfigured: boolean;
+  connectedJsonFile: string | null;
   provider: string;
   details: {
     projectId: string;
     clientEmail: string;
     privateKey: string;
+    jsonFileConnected: boolean;
   };
   message: string;
 }
+
+export interface JsonDatabaseStats {
+  fileName: string;
+  connected: boolean;
+  status: string;
+  sizeBytes: number;
+  lastModified: string | null;
+  counts: {
+    users: number;
+    documents: number;
+    grants: number;
+    versions: number;
+    alerts: number;
+  };
+}
+
+export interface JsonAuditStats {
+  fileName: string;
+  connected: boolean;
+  status: string;
+  totalEvents: number;
+  totalCheckpoints: number;
+  sizeBytes: number;
+}
+
+export interface JsonDatabaseResponse {
+  success: boolean;
+  database: JsonDatabaseStats;
+  audit: JsonAuditStats;
+  persistedAt: string;
+}
+
 
 class ApiService {
   private token: string | null = null;
@@ -498,6 +532,43 @@ class ApiService {
     });
     return this.safeParseResponse<{ report: SecurityTestReport }>(res);
   }
+
+  // ================= JSON DATABASE & PERSISTENCE =================
+
+  public async getJsonDatabaseStats(): Promise<JsonDatabaseResponse> {
+    const res = await this.safeFetch('/api/admin/json-database', {
+      headers: this.getHeaders()
+    });
+    return this.safeParseResponse<JsonDatabaseResponse>(res);
+  }
+
+  public async exportJsonDatabase(): Promise<void> {
+    const res = await this.safeFetch('/api/admin/json-database/export', {
+      headers: this.getHeaders(false)
+    });
+    if (!res.ok) {
+      throw new Error('Failed to export connected JSON database.');
+    }
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `vault_database_${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  }
+
+  public async importJsonDatabase(jsonContent: string): Promise<{ success: boolean; message: string; importedCounts: Record<string, number> }> {
+    const res = await this.safeFetch('/api/admin/json-database/import', {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ jsonContent })
+    });
+    return this.safeParseResponse<{ success: boolean; message: string; importedCounts: Record<string, number> }>(res);
+  }
 }
 
 export const api = new ApiService();
+

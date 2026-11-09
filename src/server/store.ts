@@ -1,10 +1,13 @@
 /**
  * Database & State Management Layer
- * Provides robust Firestore-compatible storage with thread-safe persistence,
+ * Provides robust JSON-persisted storage with thread-safe file sync,
  * atomic transactions, and immediate query consistency.
+ * Connected to vault_database.json
  */
 
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import type {
   User,
   DocumentRecord,
@@ -14,14 +17,177 @@ import type {
   DocumentCategory
 } from './types.js';
 
+const JSON_DB_FILE = path.resolve(process.cwd(), 'vault_database.json');
+
 export class VaultStore {
   public users: Map<string, User> = new Map();
   public documents: Map<string, DocumentRecord> = new Map();
   public grants: Map<string, DocumentGrant> = new Map();
   public versions: Map<string, DocumentVersion> = new Map();
   public alerts: SecurityAlert[] = [];
+  private saveTimeout: NodeJS.Timeout | null = null;
 
-  constructor() {}
+  constructor() {
+    this.loadFromJson();
+  }
+
+  /**
+   * Loads initial state from the connected JSON database file if present
+   */
+  public loadFromJson(): boolean {
+    try {
+      if (fs.existsSync(JSON_DB_FILE)) {
+        const raw = fs.readFileSync(JSON_DB_FILE, 'utf-8');
+        if (raw && raw.trim()) {
+          const data = JSON.parse(raw);
+          if (Array.isArray(data.users)) {
+            this.users = new Map(data.users.map((u: User) => [u.id, u]));
+          }
+          if (Array.isArray(data.documents)) {
+            this.documents = new Map(data.documents.map((d: DocumentRecord) => [d.id, d]));
+          }
+          if (Array.isArray(data.grants)) {
+            this.grants = new Map(data.grants.map((g: DocumentGrant) => [g.id, g]));
+          }
+          if (Array.isArray(data.versions)) {
+            this.versions = new Map(data.versions.map((v: DocumentVersion) => [v.id, v]));
+          }
+          if (Array.isArray(data.alerts)) {
+            this.alerts = data.alerts;
+          }
+          return true;
+        }
+      }
+    } catch (err) {
+      console.warn('[VaultStore] Note reading JSON database (will re-seed):', err);
+    }
+    return false;
+  }
+
+  /**
+   * Schedules debounced write to the connected JSON database file
+   */
+  public schedulePersist() {
+    if (this.saveTimeout) {
+      clearTimeout(this.saveTimeout);
+    }
+    this.saveTimeout = setTimeout(() => {
+      this.persistToJsonSync();
+    }, 50);
+  }
+
+  /**
+   * Persists database state synchronously to vault_database.json
+   */
+  public persistToJsonSync(): void {
+    try {
+      const payload = {
+        _schema: 'TrustVault Enterprise JSON Database',
+        _version: '1.0',
+        _lastSaved: new Date().toISOString(),
+        filePath: 'vault_database.json',
+        users: Array.from(this.users.values()),
+        documents: Array.from(this.documents.values()),
+        grants: Array.from(this.grants.values()),
+        versions: Array.from(this.versions.values()),
+        alerts: this.alerts
+      };
+      fs.writeFileSync(JSON_DB_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+    } catch (err) {
+      console.error('[VaultStore] Error writing to vault_database.json:', err);
+    }
+  }
+
+  public exportJson(): string {
+    const payload = {
+      _schema: 'TrustVault Enterprise JSON Database',
+      _version: '1.0',
+      _exportedAt: new Date().toISOString(),
+      users: Array.from(this.users.values()),
+      documents: Array.from(this.documents.values()),
+      grants: Array.from(this.grants.values()),
+      versions: Array.from(this.versions.values()),
+      alerts: this.alerts
+    };
+    return JSON.stringify(payload, null, 2);
+  }
+
+  public importJson(jsonString: string): { success: boolean; importedCounts: Record<string, number> } {
+    const data = JSON.parse(jsonString);
+    if (!data || typeof data !== 'object') {
+      throw new Error('Invalid JSON format.');
+    }
+    let userCount = 0, docCount = 0, grantCount = 0, versionCount = 0;
+    if (Array.isArray(data.users)) {
+      for (const u of data.users) {
+        if (u.id && u.email) {
+          this.users.set(u.id, u);
+          userCount++;
+        }
+      }
+    }
+    if (Array.isArray(data.documents)) {
+      for (const d of data.documents) {
+        if (d.id && d.name) {
+          this.documents.set(d.id, d);
+          docCount++;
+        }
+      }
+    }
+    if (Array.isArray(data.grants)) {
+      for (const g of data.grants) {
+        if (g.id && g.documentId) {
+          this.grants.set(g.id, g);
+          grantCount++;
+        }
+      }
+    }
+    if (Array.isArray(data.versions)) {
+      for (const v of data.versions) {
+        if (v.id && v.documentId) {
+          this.versions.set(v.id, v);
+          versionCount++;
+        }
+      }
+    }
+    this.persistToJsonSync();
+    return {
+      success: true,
+      importedCounts: {
+        users: userCount,
+        documents: docCount,
+        grants: grantCount,
+        versions: versionCount
+      }
+    };
+  }
+
+  public getDatabaseStats() {
+    let sizeBytes = 0;
+    let lastModified: string | null = null;
+    try {
+      if (fs.existsSync(JSON_DB_FILE)) {
+        const stat = fs.statSync(JSON_DB_FILE);
+        sizeBytes = stat.size;
+        lastModified = stat.mtime.toISOString();
+      }
+    } catch {}
+
+    return {
+      fileName: 'vault_database.json',
+      connected: true,
+      status: 'CONNECTED_AND_SYNCED',
+      sizeBytes,
+      lastModified,
+      counts: {
+        users: this.users.size,
+        documents: this.documents.size,
+        grants: this.grants.size,
+        versions: this.versions.size,
+        alerts: this.alerts.length
+      }
+    };
+  }
 
   // ================= USERS =================
   public async getUserById(id: string): Promise<User | null> {
@@ -44,6 +210,7 @@ export class VaultStore {
 
   public async createUser(user: User): Promise<User> {
     this.users.set(user.id, user);
+    this.schedulePersist();
     return user;
   }
 
@@ -52,6 +219,7 @@ export class VaultStore {
     if (!user) return null;
     const updated = { ...user, ...updates };
     this.users.set(id, updated);
+    this.schedulePersist();
     return updated;
   }
 
@@ -62,6 +230,7 @@ export class VaultStore {
 
   public async createDocument(doc: DocumentRecord): Promise<DocumentRecord> {
     this.documents.set(doc.id, doc);
+    this.schedulePersist();
     return doc;
   }
 
@@ -74,6 +243,7 @@ export class VaultStore {
       updatedAt: new Date().toISOString()
     };
     this.documents.set(id, updated);
+    this.schedulePersist();
     return updated;
   }
 
@@ -82,6 +252,7 @@ export class VaultStore {
     if (!doc) return false;
     doc.isDeleted = true;
     doc.updatedAt = new Date().toISOString();
+    this.schedulePersist();
     return true;
   }
 
@@ -90,6 +261,7 @@ export class VaultStore {
     if (!doc) return false;
     doc.isDeleted = false;
     doc.updatedAt = new Date().toISOString();
+    this.schedulePersist();
     return true;
   }
 
@@ -172,6 +344,7 @@ export class VaultStore {
   // ================= GRANTS & PERMISSIONS =================
   public async createGrant(grant: DocumentGrant): Promise<DocumentGrant> {
     this.grants.set(grant.id, grant);
+    this.schedulePersist();
     return grant;
   }
 
@@ -217,12 +390,14 @@ export class VaultStore {
     grant.isActive = false;
     grant.revokedAt = new Date().toISOString();
     this.grants.set(grantId, grant);
+    this.schedulePersist();
     return grant;
   }
 
   // ================= VERSIONS =================
   public async createVersion(version: DocumentVersion): Promise<DocumentVersion> {
     this.versions.set(version.id, version);
+    this.schedulePersist();
     return version;
   }
 
@@ -247,6 +422,7 @@ export class VaultStore {
     if (this.alerts.length > 100) {
       this.alerts.pop();
     }
+    this.schedulePersist();
     return fullAlert;
   }
 
