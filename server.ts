@@ -26,7 +26,6 @@ const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 // Security Headers Middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('X-XSS-Protection', '1; mode=block');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   next();
@@ -46,9 +45,12 @@ app.use(
   })
 );
 
-// Simple in-memory rate limiter for login protection
+// In-memory rate limiter for login protection (POST only)
 const loginAttempts = new Map<string, { count: number; firstAttempt: number }>();
 app.use('/api/auth/session', (req: Request, res: Response, next: NextFunction) => {
+  if (req.method !== 'POST') {
+    return next();
+  }
   const ip = req.ip || req.socket.remoteAddress || '127.0.0.1';
   const now = Date.now();
   const record = loginAttempts.get(ip);
@@ -59,6 +61,7 @@ app.use('/api/auth/session', (req: Request, res: Response, next: NextFunction) =
       loginAttempts.set(ip, { count: 1, firstAttempt: now });
     } else if (record.count >= 20) {
       res.status(429).json({
+        success: false,
         error: 'TooManyRequests',
         message: 'Rate limit exceeded for authentication attempts. Please retry in 1 minute.'
       });

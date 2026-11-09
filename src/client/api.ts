@@ -1,6 +1,7 @@
 /**
  * TrustVault API Client
- * Secure typed HTTP client managing Bearer tokens and error envelopes
+ * Secure typed HTTP client with safe response parsing, network error resilience,
+ * and zero raw stack trace exposure.
  */
 
 import type {
@@ -13,7 +14,9 @@ import type {
 } from '../server/types.js';
 
 export interface AuthResponse {
+  success: boolean;
   token: string;
+  role?: string;
   user: User;
   expiresAt: number;
 }
@@ -68,6 +71,18 @@ export interface SecurityTestReport {
   }>;
 }
 
+export interface FirebaseStatusInfo {
+  success: boolean;
+  firebaseConfigured: boolean;
+  provider: string;
+  details: {
+    projectId: string;
+    clientEmail: string;
+    privateKey: string;
+  };
+  message: string;
+}
+
 class ApiService {
   private token: string | null = null;
 
@@ -99,33 +114,126 @@ class ApiService {
     return headers;
   }
 
-  private async handleResponse<T>(res: Response): Promise<T> {
-    if (!res.ok) {
-      let errorMsg = `HTTP Error ${res.status}`;
-      try {
-        const data = await res.json();
-        errorMsg = data.message || data.error || errorMsg;
-      } catch {}
-      throw new Error(errorMsg);
+  /**
+   * Safe fetch with network failure handling
+   */
+  private async safeFetch(url: string, init?: RequestInit): Promise<Response> {
+    try {
+      return await fetch(url, init);
+    } catch (networkError: any) {
+      throw new Error(
+        'Unable to connect to the TrustVault security server. Please check your network connection.'
+      );
     }
-    return res.json() as Promise<T>;
   }
 
-  // Auth
+  /**
+   * Safe response parsing:
+   * - Reads body as text first to prevent "Unexpected end of JSON input"
+   * - Handles empty responses (0 bytes)
+   * - Handles non-JSON HTML error pages (e.g., 502/504 Bad Gateway from proxies)
+   * - Never exposes raw stack traces or internal exception details
+   */
+  private async safeParseResponse<T>(res: Response): Promise<T> {
+    const rawText = await res.text().catch(() => '');
+    let parsedData: any = null;
+
+    if (rawText && rawText.trim().length > 0) {
+      try {
+        parsedData = JSON.parse(rawText);
+      } catch {
+        // Non-JSON response (e.g. HTML error page or raw proxy status)
+        parsedData = null;
+      }
+    }
+
+    if (!res.ok) {
+      let errorMessage = `Request failed (HTTP ${res.status})`;
+
+      if (parsedData && typeof parsedData === 'object') {
+        errorMessage = parsedData.message || parsedData.error || errorMessage;
+      } else if (rawText && rawText.length > 0 && rawText.length < 200 && !rawText.includes('<!DOCTYPE')) {
+        errorMessage = rawText.trim();
+      } else {
+        // Human-friendly fallback messages based on status codes
+        switch (res.status) {
+          case 400:
+            errorMessage = 'Invalid request parameters format.';
+            break;
+          case 401:
+            errorMessage = 'Invalid email or password.';
+            break;
+          case 403:
+            errorMessage = 'Account deactivated or insufficient permissions.';
+            break;
+          case 404:
+            errorMessage = 'Requested resource not found or access denied.';
+            break;
+          case 409:
+            errorMessage = 'Resource conflict: record already exists.';
+            break;
+          case 429:
+            errorMessage = 'Rate limit exceeded. Please wait a minute before retrying.';
+            break;
+          case 500:
+          case 502:
+          case 503:
+          case 504:
+            errorMessage = 'TrustVault security service is temporarily unavailable. Please retry in a moment.';
+            break;
+          default:
+            errorMessage = `Server returned HTTP status ${res.status}.`;
+        }
+      }
+
+      throw new Error(errorMessage);
+    }
+
+    // Success response with empty body (e.g., 204 No Content or empty 200)
+    if (parsedData === null) {
+      return {} as T;
+    }
+
+    return parsedData as T;
+  }
+
+  // ================= AUTHENTICATION =================
+
+  /**
+   * Authenticate via email & password
+   */
   public async login(email: string, password: string): Promise<AuthResponse> {
-    const res = await fetch('/api/auth/session', {
+    const res = await this.safeFetch('/api/auth/session', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
+      body: JSON.stringify({ email: email.trim(), password })
     });
-    const data = await this.handleResponse<AuthResponse>(res);
-    this.setToken(data.token);
+    const data = await this.safeParseResponse<AuthResponse>(res);
+    if (data.token) {
+      this.setToken(data.token);
+    }
+    return data;
+  }
+
+  /**
+   * Authenticate via verified demo account profile
+   */
+  public async demoLogin(role: 'admin' | 'owner' | 'viewer' | 'other'): Promise<AuthResponse> {
+    const res = await this.safeFetch('/api/auth/demo-session', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ role })
+    });
+    const data = await this.safeParseResponse<AuthResponse>(res);
+    if (data.token) {
+      this.setToken(data.token);
+    }
     return data;
   }
 
   public async logout(): Promise<void> {
     try {
-      await fetch('/api/auth/logout', {
+      await this.safeFetch('/api/auth/logout', {
         method: 'POST',
         headers: this.getHeaders()
       });
@@ -134,98 +242,111 @@ class ApiService {
   }
 
   public async getMe(): Promise<{ user: User }> {
-    const res = await fetch('/api/auth/me', {
+    const res = await this.safeFetch('/api/auth/me', {
       headers: this.getHeaders()
     });
-    return this.handleResponse<{ user: User }>(res);
+    return this.safeParseResponse<{ user: User }>(res);
   }
 
-  // Documents
-  public async getDocuments(params?: { q?: string; category?: string; adminView?: boolean }): Promise<{ documents: DocumentRecord[] }> {
+  public async getFirebaseStatus(): Promise<FirebaseStatusInfo> {
+    const res = await this.safeFetch('/api/auth/firebase-status', {
+      headers: this.getHeaders()
+    });
+    return this.safeParseResponse<FirebaseStatusInfo>(res);
+  }
+
+  // ================= DOCUMENTS =================
+
+  public async getDocuments(params?: {
+    q?: string;
+    category?: string;
+    adminView?: boolean;
+  }): Promise<{ documents: DocumentRecord[] }> {
     const url = new URL('/api/documents', window.location.origin);
     if (params?.q) url.searchParams.set('q', params.q);
     if (params?.category) url.searchParams.set('category', params.category);
     if (params?.adminView) url.searchParams.set('adminView', 'true');
 
-    const res = await fetch(url.toString(), {
+    const res = await this.safeFetch(url.toString(), {
       headers: this.getHeaders()
     });
-    return this.handleResponse<{ documents: DocumentRecord[] }>(res);
+    return this.safeParseResponse<{ documents: DocumentRecord[] }>(res);
   }
 
   public async getDocument(id: string): Promise<{ document: DocumentRecord; userCanDownload: boolean }> {
-    const res = await fetch(`/api/documents/${id}`, {
+    const res = await this.safeFetch(`/api/documents/${id}`, {
       headers: this.getHeaders()
     });
-    return this.handleResponse<{ document: DocumentRecord; userCanDownload: boolean }>(res);
+    return this.safeParseResponse<{ document: DocumentRecord; userCanDownload: boolean }>(res);
   }
 
   public async uploadDocument(formData: FormData): Promise<{ document: DocumentRecord }> {
-    const res = await fetch('/api/documents', {
+    const res = await this.safeFetch('/api/documents', {
       method: 'POST',
       headers: {
         Authorization: this.token ? `Bearer ${this.token}` : ''
       },
       body: formData
     });
-    return this.handleResponse<{ document: DocumentRecord }>(res);
+    return this.safeParseResponse<{ document: DocumentRecord }>(res);
   }
 
   public async updateDocument(id: string, updates: Partial<DocumentRecord>): Promise<{ document: DocumentRecord }> {
-    const res = await fetch(`/api/documents/${id}`, {
+    const res = await this.safeFetch(`/api/documents/${id}`, {
       method: 'PATCH',
       headers: this.getHeaders(),
       body: JSON.stringify(updates)
     });
-    return this.handleResponse<{ document: DocumentRecord }>(res);
+    return this.safeParseResponse<{ document: DocumentRecord }>(res);
   }
 
   public async deleteDocument(id: string): Promise<{ success: boolean }> {
-    const res = await fetch(`/api/documents/${id}`, {
+    const res = await this.safeFetch(`/api/documents/${id}`, {
       method: 'DELETE',
       headers: this.getHeaders()
     });
-    return this.handleResponse<{ success: boolean }>(res);
+    return this.safeParseResponse<{ success: boolean }>(res);
   }
 
   public async restoreDocument(id: string): Promise<{ success: boolean }> {
-    const res = await fetch(`/api/documents/${id}/restore`, {
+    const res = await this.safeFetch(`/api/documents/${id}/restore`, {
       method: 'POST',
       headers: this.getHeaders()
     });
-    return this.handleResponse<{ success: boolean }>(res);
+    return this.safeParseResponse<{ success: boolean }>(res);
   }
 
   public async getVersions(id: string): Promise<{ versions: DocumentVersion[] }> {
-    const res = await fetch(`/api/documents/${id}/versions`, {
+    const res = await this.safeFetch(`/api/documents/${id}/versions`, {
       headers: this.getHeaders()
     });
-    return this.handleResponse<{ versions: DocumentVersion[] }>(res);
+    return this.safeParseResponse<{ versions: DocumentVersion[] }>(res);
   }
 
   public async uploadVersion(id: string, formData: FormData): Promise<{ version: DocumentVersion }> {
-    const res = await fetch(`/api/documents/${id}/versions`, {
+    const res = await this.safeFetch(`/api/documents/${id}/versions`, {
       method: 'POST',
       headers: {
         Authorization: this.token ? `Bearer ${this.token}` : ''
       },
       body: formData
     });
-    return this.handleResponse<{ version: DocumentVersion }>(res);
+    return this.safeParseResponse<{ version: DocumentVersion }>(res);
   }
 
   public async downloadDocument(id: string, filename: string): Promise<void> {
-    const res = await fetch(`/api/documents/${id}/download`, {
+    const res = await this.safeFetch(`/api/documents/${id}/download`, {
       headers: this.getHeaders(false)
     });
 
     if (!res.ok) {
-      let errText = 'Failed to download document';
+      const errText = await res.text().catch(() => '');
+      let cleanMsg = 'Failed to download document: access denied or file unavailable.';
       try {
-        const errJson = await res.json();
-        errText = errJson.message || errText;
+        const parsed = JSON.parse(errText);
+        cleanMsg = parsed.message || parsed.error || cleanMsg;
       } catch {}
-      throw new Error(errText);
+      throw new Error(cleanMsg);
     }
 
     const blob = await res.blob();
@@ -240,29 +361,31 @@ class ApiService {
   }
 
   public async getPreviewUrl(id: string): Promise<string> {
-    const res = await fetch(`/api/documents/${id}/preview`, {
+    const res = await this.safeFetch(`/api/documents/${id}/preview`, {
       headers: this.getHeaders(false)
     });
 
     if (!res.ok) {
-      let errText = 'Access denied for document preview.';
+      const errText = await res.text().catch(() => '');
+      let cleanMsg = 'Access denied for document preview.';
       try {
-        const errJson = await res.json();
-        errText = errJson.message || errText;
+        const parsed = JSON.parse(errText);
+        cleanMsg = parsed.message || parsed.error || cleanMsg;
       } catch {}
-      throw new Error(errText);
+      throw new Error(cleanMsg);
     }
 
     const blob = await res.blob();
     return window.URL.createObjectURL(blob);
   }
 
-  // Permissions
+  // ================= PERMISSIONS =================
+
   public async getPermissions(documentId: string): Promise<{ grants: DocumentGrant[] }> {
-    const res = await fetch(`/api/documents/${documentId}/permissions`, {
+    const res = await this.safeFetch(`/api/documents/${documentId}/permissions`, {
       headers: this.getHeaders()
     });
-    return this.handleResponse<{ grants: DocumentGrant[] }>(res);
+    return this.safeParseResponse<{ grants: DocumentGrant[] }>(res);
   }
 
   public async grantPermission(
@@ -271,23 +394,24 @@ class ApiService {
     permissionLevel: 'READ' | 'EDIT',
     expiresAt?: string | null
   ): Promise<{ grant: DocumentGrant }> {
-    const res = await fetch(`/api/documents/${documentId}/permissions`, {
+    const res = await this.safeFetch(`/api/documents/${documentId}/permissions`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({ granteeEmail, permissionLevel, expiresAt })
     });
-    return this.handleResponse<{ grant: DocumentGrant }>(res);
+    return this.safeParseResponse<{ grant: DocumentGrant }>(res);
   }
 
   public async revokePermission(documentId: string, grantId: string): Promise<{ success: boolean; message: string }> {
-    const res = await fetch(`/api/documents/${documentId}/permissions/${grantId}`, {
+    const res = await this.safeFetch(`/api/documents/${documentId}/permissions/${grantId}`, {
       method: 'DELETE',
       headers: this.getHeaders()
     });
-    return this.handleResponse<{ success: boolean; message: string }>(res);
+    return this.safeParseResponse<{ success: boolean; message: string }>(res);
   }
 
-  // Audit
+  // ================= AUDIT =================
+
   public async getAuditEvents(params?: {
     action?: string;
     outcome?: string;
@@ -300,34 +424,36 @@ class ApiService {
     if (params?.actorEmail) url.searchParams.set('actorEmail', params.actorEmail);
     if (params?.limit) url.searchParams.set('limit', String(params.limit));
 
-    const res = await fetch(url.toString(), {
+    const res = await this.safeFetch(url.toString(), {
       headers: this.getHeaders()
     });
-    return this.handleResponse<{ events: AuditEvent[] }>(res);
+    return this.safeParseResponse<{ events: AuditEvent[] }>(res);
   }
 
   public async verifyAuditChain(): Promise<{ verification: VerificationResult }> {
-    const res = await fetch('/api/audit/verify', {
+    const res = await this.safeFetch('/api/audit/verify', {
       method: 'POST',
       headers: this.getHeaders()
     });
-    return this.handleResponse<{ verification: VerificationResult }>(res);
+    return this.safeParseResponse<{ verification: VerificationResult }>(res);
   }
 
-  // Admin
+  // ================= ADMIN & GOVERNANCE =================
+
   public async getAdminDashboard(): Promise<AdminDashboardData> {
-    const res = await fetch('/api/admin/dashboard', {
+    const res = await this.safeFetch('/api/admin/dashboard', {
       headers: this.getHeaders()
     });
-    return this.handleResponse<AdminDashboardData>(res);
+    return this.safeParseResponse<AdminDashboardData>(res);
   }
 
-  // Users
+  // ================= USERS =================
+
   public async getUsers(): Promise<{ users: User[] }> {
-    const res = await fetch('/api/users', {
+    const res = await this.safeFetch('/api/users', {
       headers: this.getHeaders()
     });
-    return this.handleResponse<{ users: User[] }>(res);
+    return this.safeParseResponse<{ users: User[] }>(res);
   }
 
   public async createUser(userData: {
@@ -336,33 +462,34 @@ class ApiService {
     password: string;
     role: string;
   }): Promise<{ user: User }> {
-    const res = await fetch('/api/users', {
+    const res = await this.safeFetch('/api/users', {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(userData)
     });
-    return this.handleResponse<{ user: User }>(res);
+    return this.safeParseResponse<{ user: User }>(res);
   }
 
   public async updateUser(
     id: string,
     updates: { active?: boolean; role?: string; displayName?: string }
   ): Promise<{ user: User }> {
-    const res = await fetch(`/api/users/${id}`, {
+    const res = await this.safeFetch(`/api/users/${id}`, {
       method: 'PATCH',
       headers: this.getHeaders(),
       body: JSON.stringify(updates)
     });
-    return this.handleResponse<{ user: User }>(res);
+    return this.safeParseResponse<{ user: User }>(res);
   }
 
-  // Security Suite / Pentest
+  // ================= PENTEST & SECURITY SUITE =================
+
   public async runSecuritySuite(): Promise<{ report: SecurityTestReport }> {
-    const res = await fetch('/api/security/run-tests', {
+    const res = await this.safeFetch('/api/security/run-tests', {
       method: 'POST',
       headers: this.getHeaders()
     });
-    return this.handleResponse<{ report: SecurityTestReport }>(res);
+    return this.safeParseResponse<{ report: SecurityTestReport }>(res);
   }
 }
 

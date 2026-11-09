@@ -1,6 +1,6 @@
 /**
  * Authentication Context
- * Manages user session state, automatic token renewal, and 1-click demo role switching.
+ * Manages user session state, automatic session verification, and verified demo role switching.
  */
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
@@ -15,6 +15,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   switchDemoAccount: (role: 'admin' | 'owner' | 'viewer' | 'other') => Promise<void>;
   refreshUser: () => Promise<void>;
+  clearError: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -31,17 +32,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const clearError = () => setError(null);
+
   const refreshUser = async () => {
     try {
-      if (!api.getToken()) {
+      const token = api.getToken();
+      if (!token) {
         setUser(null);
         setLoading(false);
         return;
       }
       const data = await api.getMe();
-      setUser(data.user);
+      if (data && data.user) {
+        setUser(data.user);
+      } else {
+        api.setToken(null);
+        setUser(null);
+      }
     } catch (err: any) {
-      console.warn('[TrustVault Auth] Session restore failed:', err.message);
+      console.warn('[TrustVault Auth] Session verify failed:', err.message);
       api.setToken(null);
       setUser(null);
     } finally {
@@ -50,11 +59,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // If no token exists on startup, default to owner for immediate exploration
-    if (!api.getToken()) {
-      switchDemoAccount('owner').catch(() => setLoading(false));
-    } else {
+    // If a saved token exists, verify it with backend
+    const token = api.getToken();
+    if (token) {
       refreshUser();
+    } else {
+      // Clean initial state: no error on fresh page load
+      setUser(null);
+      setLoading(false);
     }
   }, []);
 
@@ -62,10 +74,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     setLoading(true);
     try {
-      const data = await api.login(email, pass);
-      setUser(data.user);
+      if (!email || !email.trim()) {
+        throw new Error('Please enter your account email.');
+      }
+      if (!pass || !pass.trim()) {
+        throw new Error('Please enter your password.');
+      }
+      const data = await api.login(email.trim(), pass);
+      if (data && data.user) {
+        setUser(data.user);
+      } else {
+        throw new Error('Server returned invalid session structure.');
+      }
     } catch (err: any) {
-      setError(err.message || 'Authentication failed');
+      const msg = err.message || 'Authentication failed. Please verify credentials.';
+      setError(msg);
       throw err;
     } finally {
       setLoading(false);
@@ -76,8 +99,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       await api.logout();
-      setUser(null);
     } finally {
+      api.setToken(null);
+      setUser(null);
+      setError(null);
       setLoading(false);
     }
   };
@@ -86,11 +111,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     setLoading(true);
     try {
-      const creds = DEMO_CREDENTIALS[role];
-      const data = await api.login(creds.email, creds.pass);
-      setUser(data.user);
+      // First try dedicated verified demo-session endpoint
+      const data = await api.demoLogin(role);
+      if (data && data.user) {
+        setUser(data.user);
+      } else {
+        throw new Error('Demo authentication returned invalid payload.');
+      }
     } catch (err: any) {
-      setError(err.message || 'Failed to switch demo account');
+      // Fallback: Authenticate with configured credentials
+      try {
+        const creds = DEMO_CREDENTIALS[role];
+        const data = await api.login(creds.email, creds.pass);
+        if (data && data.user) {
+          setUser(data.user);
+        } else {
+          throw new Error('Fallback authentication failed.');
+        }
+      } catch (fallbackErr: any) {
+        const displayMsg = fallbackErr.message || err.message || 'Unable to authenticate demo account.';
+        setError(displayMsg);
+      }
     } finally {
       setLoading(false);
     }
@@ -105,7 +146,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         login,
         logout,
         switchDemoAccount,
-        refreshUser
+        refreshUser,
+        clearError
       }}
     >
       {children}

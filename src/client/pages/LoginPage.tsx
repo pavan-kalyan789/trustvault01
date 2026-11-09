@@ -1,6 +1,7 @@
 /**
  * Enterprise Login Screen
- * Zero-trust authentication with demo account quick-fill options.
+ * Zero-trust authentication with verified demo account quick-fill options.
+ * Preserves the exact dark navy cybersecurity UI, logo, layout, and colors.
  */
 
 import React, { useState } from 'react';
@@ -8,7 +9,7 @@ import { useAuth, DEMO_CREDENTIALS } from '../context/AuthContext.js';
 import { Shield, Lock, Eye, EyeOff, AlertTriangle, ArrowRight, UserCheck } from 'lucide-react';
 
 export const LoginPage: React.FC = () => {
-  const { login, switchDemoAccount, error: authError } = useAuth();
+  const { login, switchDemoAccount, error: authError, clearError } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -18,11 +19,22 @@ export const LoginPage: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLocalError(null);
+    clearError();
+
+    if (!email.trim()) {
+      setLocalError('Please enter your account email address.');
+      return;
+    }
+    if (!password.trim()) {
+      setLocalError('Please enter your vault password.');
+      return;
+    }
+
     setLoading(true);
     try {
       await login(email, password);
     } catch (err: any) {
-      setLocalError(err.message || 'Authentication failed.');
+      setLocalError(err.message || 'Authentication failed. Please verify credentials.');
     } finally {
       setLoading(false);
     }
@@ -30,6 +42,7 @@ export const LoginPage: React.FC = () => {
 
   const handleQuickLogin = async (role: 'admin' | 'owner' | 'viewer' | 'other') => {
     setLocalError(null);
+    clearError();
     const creds = DEMO_CREDENTIALS[role];
     setEmail(creds.email);
     setPassword(creds.pass);
@@ -65,9 +78,9 @@ export const LoginPage: React.FC = () => {
           </div>
 
           {displayError && (
-            <div className="p-3.5 bg-rose-950/60 border border-rose-700/60 rounded-xl text-rose-300 flex items-center gap-2.5">
+            <div className="p-3.5 bg-rose-950/60 border border-rose-700/60 rounded-xl text-rose-300 flex items-center gap-2.5 animate-in fade-in">
               <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-              <span>{displayError}</span>
+              <span className="leading-snug">{displayError}</span>
             </div>
           )}
 
@@ -78,7 +91,13 @@ export const LoginPage: React.FC = () => {
                 type="email"
                 placeholder="user@trustvault.local"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={e => {
+                  setEmail(e.target.value);
+                  if (displayError) {
+                    setLocalError(null);
+                    clearError();
+                  }
+                }}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition text-xs"
                 required
               />
@@ -91,7 +110,13 @@ export const LoginPage: React.FC = () => {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••••••"
                   value={password}
-                  onChange={e => setPassword(e.target.value)}
+                  onChange={e => {
+                    setPassword(e.target.value);
+                    if (displayError) {
+                      setLocalError(null);
+                      clearError();
+                    }
+                  }}
                   className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-3.5 pr-10 py-2.5 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition text-xs"
                   required
                 />

@@ -308,3 +308,135 @@ describe('6. Mutation Testing (Verification of Central Authorization Check)', ()
     expect(restoredCheck).toBe(false);
   });
 });
+
+describe('7. Comprehensive Authentication & Role Validation Matrix (Step 6)', () => {
+  it('authenticates Administrator and returns role admin with valid token', async () => {
+    const res = await request(testApp)
+      .post('/api/auth/session')
+      .send({ email: 'admin@trustvault.local', password: 'TrustVault2026!Admin' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.role).toBe('admin');
+    expect(res.body.user.email).toBe('admin@trustvault.local');
+    expect(res.body.token).toBeDefined();
+    expect(res.body.user.passwordHash).toBeUndefined(); // Never leaks secrets
+  });
+
+  it('authenticates Document Owner and returns role owner with valid token', async () => {
+    const res = await request(testApp)
+      .post('/api/auth/session')
+      .send({ email: 'owner@trustvault.local', password: 'TrustVault2026!Owner' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.role).toBe('owner');
+    expect(res.body.user.email).toBe('owner@trustvault.local');
+    expect(res.body.token).toBeDefined();
+  });
+
+  it('authenticates Compliance Viewer and returns role viewer with valid token', async () => {
+    const res = await request(testApp)
+      .post('/api/auth/session')
+      .send({ email: 'viewer@trustvault.local', password: 'TrustVault2026!Viewer' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.role).toBe('viewer');
+    expect(res.body.user.email).toBe('viewer@trustvault.local');
+    expect(res.body.token).toBeDefined();
+  });
+
+  it('authenticates Other Viewer and returns role viewer with valid token', async () => {
+    const res = await request(testApp)
+      .post('/api/auth/session')
+      .send({ email: 'other@trustvault.local', password: 'TrustVault2026!Other' });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.role).toBe('viewer');
+    expect(res.body.user.email).toBe('other@trustvault.local');
+    expect(res.body.token).toBeDefined();
+  });
+
+  it('proves all 4 demo profiles authenticate via dedicated demo-session endpoint', async () => {
+    for (const role of ['admin', 'owner', 'viewer', 'other'] as const) {
+      const res = await request(testApp)
+        .post('/api/auth/demo-session')
+        .send({ role });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.token).toBeDefined();
+      expect(res.body.user).toBeDefined();
+    }
+  });
+
+  it('rejects invalid password with 401 and success: false', async () => {
+    const res = await request(testApp)
+      .post('/api/auth/session')
+      .send({ email: 'owner@trustvault.local', password: 'WrongPassword123!' });
+
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBe('Unauthorized');
+    expect(res.body.message).toBe('Invalid email or password.');
+  });
+
+  it('rejects unknown email with 401 and success: false', async () => {
+    const res = await request(testApp)
+      .post('/api/auth/session')
+      .send({ email: 'nonexistent@trustvault.local', password: 'AnyPassword123!' });
+
+    expect(res.status).toBe(401);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBe('Unauthorized');
+    expect(res.body.message).toBe('Invalid email or password.');
+  });
+
+  it('rejects empty email with 400 and success: false', async () => {
+    const res = await request(testApp)
+      .post('/api/auth/session')
+      .send({ email: '', password: 'SomePassword!' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBe('BadRequest');
+  });
+
+  it('rejects empty password with 400 and success: false', async () => {
+    const res = await request(testApp)
+      .post('/api/auth/session')
+      .send({ email: 'owner@trustvault.local', password: '' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBe('BadRequest');
+  });
+
+  it('blocks disabled account on authentication attempt with 403 and success: false', async () => {
+    const user = await vaultStore.getUserByEmail('other@trustvault.local');
+    await vaultStore.updateUser(user!.id, { active: false });
+
+    const res = await request(testApp)
+      .post('/api/auth/session')
+      .send({ email: 'other@trustvault.local', password: 'TrustVault2026!Other' });
+
+    // Restore active
+    await vaultStore.updateUser(user!.id, { active: true });
+
+    expect(res.status).toBe(403);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBe('Forbidden');
+    expect(res.body.message).toContain('deactivated');
+  });
+
+  it('reports transparent Firebase configuration status', async () => {
+    const res = await request(testApp).get('/api/auth/firebase-status');
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.provider).toBeDefined();
+    expect(res.body.details).toBeDefined();
+  });
+});
+

@@ -24,12 +24,30 @@ Standard error responses follow the format:
 - **Success Response (200 OK):**
   ```json
   {
+    "success": true,
     "token": "tv_tok_...",
-    "user": { "id": "usr_owner_001", "email": "...", "role": "owner", "active": true },
+    "role": "owner",
+    "user": { "id": "usr_owner_001", "email": "owner@trustvault.local", "displayName": "...", "role": "owner", "active": true },
     "expiresAt": 1778390000000
   }
   ```
-- **Failure Responses:** `400 BadRequest`, `401 Unauthorized`, `403 Forbidden` (account deactivated), `429 TooManyRequests`.
+- **Failure Responses:**
+  - `400 BadRequest`: `{ "success": false, "error": "BadRequest", "message": "Invalid email or password format." }`
+  - `401 Unauthorized`: `{ "success": false, "error": "Unauthorized", "message": "Invalid email or password." }`
+  - `403 Forbidden`: `{ "success": false, "error": "Forbidden", "message": "This account has been deactivated." }`
+  - `429 TooManyRequests`: `{ "success": false, "error": "TooManyRequests", "message": "Rate limit exceeded." }`
+  - `500 InternalServerError`: `{ "success": false, "error": "InternalServerError", "message": "Authentication failed." }`
+
+### `POST /api/auth/demo-session`
+- **Purpose:** Verified demo authentication for evaluation. Validates against database records and issues real cryptographic session tokens.
+- **Auth Required:** None.
+- **Request Body:** `{ "role": "admin" | "owner" | "viewer" | "other" }`
+- **Success Response (200 OK):** `{ "success": true, "token": "...", "role": "...", "user": { ... } }`
+
+### `GET /api/auth/firebase-status`
+- **Purpose:** Reports active authentication provider and transparent Firebase configuration status.
+- **Auth Required:** None.
+- **Success Response (200 OK):** `{ "success": true, "firebaseConfigured": boolean, "provider": string, "details": object }`
 
 ### `POST /api/auth/logout`
 - **Purpose:** Invalidate session token and record `LOGOUT` audit event.
@@ -39,7 +57,7 @@ Standard error responses follow the format:
 ### `GET /api/auth/me`
 - **Purpose:** Retrieve the currently authenticated user's profile.
 - **Auth Required:** Bearer Token.
-- **Success Response (200 OK):** `{ "user": { "id": "...", "email": "...", "role": "..." } }`
+- **Success Response (200 OK):** `{ "success": true, "user": { "id": "...", "email": "...", "role": "..." } }`
 
 ---
 
