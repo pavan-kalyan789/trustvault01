@@ -14,57 +14,67 @@ export function hashPassword(password: string): string {
   return crypto.createHash('sha256').update(password + '_trustvault_salt_2026').digest('hex');
 }
 
+export const DEMO_DEFAULT_PASSWORDS = {
+  admin: process.env.DEMO_ADMIN_PASSWORD || 'TrustVault2026!Admin',
+  owner: process.env.DEMO_OWNER_PASSWORD || 'TrustVault2026!Owner',
+  viewer: process.env.DEMO_VIEWER_PASSWORD || 'TrustVault2026!Viewer',
+  other: process.env.DEMO_OTHER_PASSWORD || 'TrustVault2026!Other'
+};
+
 export async function seedInitialData(): Promise<void> {
-  const existingUsers = await vaultStore.getAllUsers();
-  if (existingUsers.length > 0) {
-    return; // Already initialized
+  // 1. Ensure all 4 Seed Accounts exist in the database (idempotent verification)
+  const demoUsers: User[] = [
+    {
+      id: 'usr_admin_001',
+      email: 'admin@trustvault.local',
+      displayName: 'Chief Security Officer (Admin)',
+      role: 'admin',
+      passwordHash: hashPassword(DEMO_DEFAULT_PASSWORDS.admin),
+      active: true,
+      createdAt: '2026-01-10T08:00:00.000Z'
+    },
+    {
+      id: 'usr_owner_001',
+      email: 'owner@trustvault.local',
+      displayName: 'Sarah Chen (Legal Counsel / Owner)',
+      role: 'owner',
+      passwordHash: hashPassword(DEMO_DEFAULT_PASSWORDS.owner),
+      active: true,
+      createdAt: '2026-01-10T08:05:00.000Z'
+    },
+    {
+      id: 'usr_viewer_001',
+      email: 'viewer@trustvault.local',
+      displayName: 'Marcus Vance (Compliance Auditor / Viewer)',
+      role: 'viewer',
+      passwordHash: hashPassword(DEMO_DEFAULT_PASSWORDS.viewer),
+      active: true,
+      createdAt: '2026-01-10T08:10:00.000Z'
+    },
+    {
+      id: 'usr_other_001',
+      email: 'other@trustvault.local',
+      displayName: 'Alex Morgan (External Contractor / Viewer)',
+      role: 'viewer',
+      passwordHash: hashPassword(DEMO_DEFAULT_PASSWORDS.other),
+      active: true,
+      createdAt: '2026-01-10T08:15:00.000Z'
+    }
+  ];
+
+  const [adminUser, ownerUser, viewerUser, otherViewerUser] = demoUsers;
+
+  for (const user of demoUsers) {
+    const existing = await vaultStore.getUserByEmail(user.email);
+    if (!existing) {
+      await vaultStore.createUser(user);
+    }
   }
 
-  // 1. Create 4 Seed Accounts
-  const adminUser: User = {
-    id: 'usr_admin_001',
-    email: 'admin@trustvault.local',
-    displayName: 'Chief Security Officer (Admin)',
-    role: 'admin',
-    passwordHash: hashPassword('TrustVault2026!Admin'),
-    active: true,
-    createdAt: new Date('2026-01-10T08:00:00Z').toISOString()
-  };
-
-  const ownerUser: User = {
-    id: 'usr_owner_001',
-    email: 'owner@trustvault.local',
-    displayName: 'Sarah Chen (Legal Counsel / Owner)',
-    role: 'owner',
-    passwordHash: hashPassword('TrustVault2026!Owner'),
-    active: true,
-    createdAt: new Date('2026-01-10T08:05:00Z').toISOString()
-  };
-
-  const viewerUser: User = {
-    id: 'usr_viewer_001',
-    email: 'viewer@trustvault.local',
-    displayName: 'Marcus Vance (Compliance Auditor / Viewer)',
-    role: 'viewer',
-    passwordHash: hashPassword('TrustVault2026!Viewer'),
-    active: true,
-    createdAt: new Date('2026-01-10T08:10:00Z').toISOString()
-  };
-
-  const otherViewerUser: User = {
-    id: 'usr_other_001',
-    email: 'other@trustvault.local',
-    displayName: 'Alex Morgan (External Contractor / Viewer)',
-    role: 'viewer',
-    passwordHash: hashPassword('TrustVault2026!Other'),
-    active: true,
-    createdAt: new Date('2026-01-10T08:15:00Z').toISOString()
-  };
-
-  await vaultStore.createUser(adminUser);
-  await vaultStore.createUser(ownerUser);
-  await vaultStore.createUser(viewerUser);
-  await vaultStore.createUser(otherViewerUser);
+  // Check if sample documents have already been seeded
+  if (vaultStore.documents.size > 0) {
+    return;
+  }
 
   // 2. Create Physical Sample Files with genuine Magic Bytes
   // Valid PDF header and minimal structure

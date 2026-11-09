@@ -20,11 +20,11 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const DEMO_CREDENTIALS = {
-  admin: { email: 'admin@trustvault.local', pass: 'TrustVault2026!Admin', label: 'Admin (CSO)' },
-  owner: { email: 'owner@trustvault.local', pass: 'TrustVault2026!Owner', label: 'Owner (Legal)' },
-  viewer: { email: 'viewer@trustvault.local', pass: 'TrustVault2026!Viewer', label: 'Viewer (Compliance)' },
-  other: { email: 'other@trustvault.local', pass: 'TrustVault2026!Other', label: 'Other Viewer (Contractor)' }
+export const DEMO_PROFILES = {
+  admin: { email: 'admin@trustvault.local', role: 'admin' as const, label: 'Admin (CSO)' },
+  owner: { email: 'owner@trustvault.local', role: 'owner' as const, label: 'Owner (Legal)' },
+  viewer: { email: 'viewer@trustvault.local', role: 'viewer' as const, label: 'Viewer (Compliance)' },
+  other: { email: 'other@trustvault.local', role: 'viewer' as const, label: 'Other Viewer (Contractor)' }
 };
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
@@ -62,7 +62,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     let isMounted = true;
 
     const initializeSession = async () => {
-      // 1. If an existing token is stored, attempt verification
       const existingToken = api.getToken();
       if (existingToken) {
         try {
@@ -77,18 +76,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // 2. Otherwise auto-login directly to the default role ('owner') without external login barrier
-      try {
-        const defaultAuth = await api.demoLogin('owner');
-        if (isMounted && defaultAuth && defaultAuth.user) {
-          setUser(defaultAuth.user);
-        }
-      } catch (err: any) {
-        console.warn('[TrustVault Auth] Default login initiation:', err?.message);
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
+      if (isMounted) {
+        setUser(null);
+        setLoading(false);
       }
     };
 
@@ -140,27 +130,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setError(null);
     setLoading(true);
     try {
-      // First try dedicated verified demo-session endpoint
       const data = await api.demoLogin(role);
-      if (data && data.user) {
+      if (data && data.success && data.user) {
         setUser(data.user);
       } else {
-        throw new Error('Demo authentication returned invalid payload.');
+        throw new Error(data?.message || 'Authentication response missing valid user record.');
       }
     } catch (err: any) {
-      // Fallback: Authenticate with configured credentials
-      try {
-        const creds = DEMO_CREDENTIALS[role];
-        const data = await api.login(creds.email, creds.pass);
-        if (data && data.user) {
-          setUser(data.user);
-        } else {
-          throw new Error('Fallback authentication failed.');
-        }
-      } catch (fallbackErr: any) {
-        const displayMsg = fallbackErr.message || err.message || 'Unable to authenticate demo account.';
-        setError(displayMsg);
-      }
+      const displayMsg = err.message || 'Unable to authenticate demo account. Please verify backend connection.';
+      setError(displayMsg);
+      throw err;
     } finally {
       setLoading(false);
     }

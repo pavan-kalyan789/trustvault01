@@ -359,7 +359,14 @@ describe('7. Comprehensive Authentication & Role Validation Matrix (Step 6)', ()
     expect(res.body.token).toBeDefined();
   });
 
-  it('proves all 4 demo profiles authenticate via dedicated demo-session endpoint', async () => {
+  it('proves all 4 demo profiles authenticate via dedicated demo-session endpoint with complete payload', async () => {
+    const expectedEmails: Record<string, string> = {
+      admin: 'admin@trustvault.local',
+      owner: 'owner@trustvault.local',
+      viewer: 'viewer@trustvault.local',
+      other: 'other@trustvault.local'
+    };
+
     for (const role of ['admin', 'owner', 'viewer', 'other'] as const) {
       const res = await request(testApp)
         .post('/api/auth/demo-session')
@@ -367,8 +374,14 @@ describe('7. Comprehensive Authentication & Role Validation Matrix (Step 6)', ()
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
-      expect(res.body.token).toBeDefined();
+      expect(res.body.token).toMatch(/^tv_tok_[a-f0-9]{64}$/);
+      expect(res.body.role).toBe(role === 'admin' ? 'admin' : role === 'owner' ? 'owner' : 'viewer');
       expect(res.body.user).toBeDefined();
+      expect(res.body.user.id).toBeDefined();
+      expect(res.body.user.email).toBe(expectedEmails[role]);
+      expect(res.body.user.active).toBe(true);
+      expect(res.body.user.displayName).toBeDefined();
+      expect(res.body.expiresAt).toBeGreaterThan(Date.now());
     }
   });
 

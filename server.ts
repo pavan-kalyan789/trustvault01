@@ -23,6 +23,9 @@ const __dirname = path.dirname(__filename);
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 
+// Enable reverse-proxy IP tracking (Cloud Run / Nginx)
+app.set('trust proxy', true);
+
 // Security Headers Middleware
 app.use((req: Request, res: Response, next: NextFunction) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');

@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:security": "vitest run test/security.test.ts",
     "clean": "rm -rf dist server.js",
+    "seed": "tsx src/server/seed-cli.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

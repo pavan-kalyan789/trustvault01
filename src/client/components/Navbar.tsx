@@ -4,7 +4,7 @@
  */
 
 import React, { useState } from 'react';
-import { useAuth, DEMO_CREDENTIALS } from '../context/AuthContext.js';
+import { useAuth } from '../context/AuthContext.js';
 import { Shield, Lock, CheckCircle2, UserCheck, LogOut, ChevronDown, Activity } from 'lucide-react';
 
 interface NavbarProps {

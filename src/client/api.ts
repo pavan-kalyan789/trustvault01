@@ -19,6 +19,8 @@ export interface AuthResponse {
   role?: string;
   user: User;
   expiresAt: number;
+  message?: string;
+  error?: string;
 }
 
 export interface AdminMetrics {
@@ -189,9 +191,14 @@ class ApiService {
       throw new Error(errorMessage);
     }
 
-    // Success response with empty body (e.g., 204 No Content or empty 200)
-    if (parsedData === null) {
+    // 204 No Content response
+    if (res.status === 204) {
       return {} as T;
+    }
+
+    // Success response must contain valid JSON payload
+    if (parsedData === null) {
+      throw new Error('Security server returned an empty or invalid JSON response.');
     }
 
     return parsedData as T;
