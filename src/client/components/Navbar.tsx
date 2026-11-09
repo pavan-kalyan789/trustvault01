@@ -42,15 +42,25 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuditVerify, onOpenPentest
         </div>
       </div>
 
-      {/* Evaluator Demo Account Quick Switcher */}
-      <div className="hidden lg:flex items-center gap-2 bg-slate-950/80 px-3 py-1.5 rounded-lg border border-slate-800">
-        <span className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
+      {/* Default Logins Quick Switcher */}
+      <div className="hidden lg:flex items-center gap-1.5 bg-slate-950/80 px-3 py-1.5 rounded-xl border border-slate-800">
+        <span className="text-xs text-slate-400 font-medium flex items-center gap-1.5 mr-1">
           <UserCheck className="w-3.5 h-3.5 text-blue-400" />
-          Demo Role:
+          Default Logins:
         </span>
         <button
+          onClick={() => switchDemoAccount('owner')}
+          className={`text-xs px-2.5 py-1 rounded-lg transition-all font-medium ${
+            user.role === 'owner'
+              ? 'bg-emerald-600 text-white shadow-sm'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          Owner (Default)
+        </button>
+        <button
           onClick={() => switchDemoAccount('admin')}
-          className={`text-xs px-2.5 py-1 rounded transition-all font-medium ${
+          className={`text-xs px-2.5 py-1 rounded-lg transition-all font-medium ${
             user.role === 'admin'
               ? 'bg-rose-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -59,18 +69,8 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuditVerify, onOpenPentest
           Admin
         </button>
         <button
-          onClick={() => switchDemoAccount('owner')}
-          className={`text-xs px-2.5 py-1 rounded transition-all font-medium ${
-            user.role === 'owner'
-              ? 'bg-emerald-600 text-white shadow-sm'
-              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-          }`}
-        >
-          Owner
-        </button>
-        <button
           onClick={() => switchDemoAccount('viewer')}
-          className={`text-xs px-2.5 py-1 rounded transition-all font-medium ${
+          className={`text-xs px-2.5 py-1 rounded-lg transition-all font-medium ${
             user.role === 'viewer' && user.email === 'viewer@trustvault.local'
               ? 'bg-blue-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -80,7 +80,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuditVerify, onOpenPentest
         </button>
         <button
           onClick={() => switchDemoAccount('other')}
-          className={`text-xs px-2.5 py-1 rounded transition-all font-medium ${
+          className={`text-xs px-2.5 py-1 rounded-lg transition-all font-medium ${
             user.email === 'other@trustvault.local'
               ? 'bg-amber-600 text-white shadow-sm'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
@@ -136,12 +136,57 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuditVerify, onOpenPentest
           </button>
 
           {dropdownOpen && (
-            <div className="absolute right-0 mt-2 w-56 rounded-xl bg-slate-900 border border-slate-700 shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95">
+            <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-slate-900 border border-slate-700 shadow-2xl py-2 z-50 animate-in fade-in zoom-in-95">
               <div className="px-4 py-2 border-b border-slate-800">
                 <div className="text-xs font-semibold text-white">{user.displayName}</div>
                 <div className="text-[11px] text-slate-400 font-mono">{user.email}</div>
                 <div className="text-[10px] text-emerald-400 font-medium mt-1 flex items-center gap-1">
                   <Lock className="w-2.5 h-2.5" /> Hardware-isolated session active
+                </div>
+              </div>
+
+              {/* Mobile Default Logins switcher */}
+              <div className="px-3 py-2 border-b border-slate-800 lg:hidden">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Default Logins:
+                </div>
+                <div className="grid grid-cols-2 gap-1 text-xs">
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      switchDemoAccount('owner');
+                    }}
+                    className="p-1.5 rounded bg-slate-800 hover:bg-emerald-950 text-emerald-300 text-left text-[11px]"
+                  >
+                    Owner (Default)
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      switchDemoAccount('admin');
+                    }}
+                    className="p-1.5 rounded bg-slate-800 hover:bg-rose-950 text-rose-300 text-left text-[11px]"
+                  >
+                    Admin
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      switchDemoAccount('viewer');
+                    }}
+                    className="p-1.5 rounded bg-slate-800 hover:bg-blue-950 text-blue-300 text-left text-[11px]"
+                  >
+                    Viewer
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      switchDemoAccount('other');
+                    }}
+                    className="p-1.5 rounded bg-slate-800 hover:bg-amber-950 text-amber-300 text-left text-[11px]"
+                  >
+                    Other Viewer
+                  </button>
                 </div>
               </div>
 
@@ -154,7 +199,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuditVerify, onOpenPentest
                   className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-300 hover:bg-rose-950/50 rounded-lg transition"
                 >
                   <LogOut className="w-3.5 h-3.5" />
-                  Sign Out
+                  Sign Out to Default Logins
                 </button>
               </div>
             </div>

@@ -59,15 +59,44 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   useEffect(() => {
-    // If a saved token exists, verify it with backend
-    const token = api.getToken();
-    if (token) {
-      refreshUser();
-    } else {
-      // Clean initial state: no error on fresh page load
-      setUser(null);
-      setLoading(false);
-    }
+    let isMounted = true;
+
+    const initializeSession = async () => {
+      // 1. If an existing token is stored, attempt verification
+      const existingToken = api.getToken();
+      if (existingToken) {
+        try {
+          const data = await api.getMe();
+          if (isMounted && data && data.user) {
+            setUser(data.user);
+            setLoading(false);
+            return;
+          }
+        } catch {
+          api.setToken(null);
+        }
+      }
+
+      // 2. Otherwise auto-login directly to the default role ('owner') without external login barrier
+      try {
+        const defaultAuth = await api.demoLogin('owner');
+        if (isMounted && defaultAuth && defaultAuth.user) {
+          setUser(defaultAuth.user);
+        }
+      } catch (err: any) {
+        console.warn('[TrustVault Auth] Default login initiation:', err?.message);
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    initializeSession();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const login = async (email: string, pass: string) => {
