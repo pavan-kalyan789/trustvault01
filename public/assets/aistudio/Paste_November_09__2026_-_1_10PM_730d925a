@@ -1,0 +1,1148 @@
+# MASTER BUILD PROMPT — TRUSTVAULT
+## Enterprise Secure Document Sharing Platform | RISE Challenge
+
+Act as a senior full-stack software architect, application security engineer, database engineer, UI/UX designer, and QA engineer.
+
+Build a complete, working, professional-grade web application named **TrustVault — Secure Document Sharing with a Real Audit Trail**.
+
+This is a security-focused document management platform. This is NOT just a UI prototype or CRUD demonstration.
+
+Your highest priority is preventing unauthorized document access, preventing insecure direct object references (IDOR), implementing immediate permission revocation, and maintaining verifiable audit evidence.
+
+Build the entire application, including frontend, backend, database, authentication, private file storage, security controls, automated tests, documentation, and deployment configuration.
+
+Do not stop after generating a dashboard. All buttons, forms, API endpoints, database operations, authentication flows, document uploads, downloads, permission changes, and audit operations must work.
+
+---
+
+# 1. REQUIRED TECHNOLOGY STACK
+
+Use the following stack:
+
+Frontend:
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- Lucide React icons
+- React Router
+- TanStack Query or an equivalent API state-management solution
+
+Backend:
+- Node.js
+- TypeScript
+- Express or a compatible server-side API architecture
+- Firebase Admin SDK
+- Server-side authorization middleware
+- Zod for request validation
+
+Database:
+- Firebase Authentication
+- Cloud Firestore
+
+File storage:
+- Google Cloud Storage private bucket in production.
+- Local private filesystem storage for local development and automated tests.
+- Never expose storage bucket objects or local filesystem paths to unauthorized clients.
+
+Testing:
+- Vitest
+- Supertest
+- Firebase Emulator Suite where applicable
+- Security-focused integration tests
+
+Deployment:
+- Google AI Studio Build environment
+- Google Cloud Run
+- GitHub repository integration
+
+Use environment variables for every secret and deployment-specific configuration.
+
+If Firebase setup is offered, request permission to enable Firebase Authentication and Cloud Firestore.
+
+Do not assume that enabling Firebase automatically creates a Cloud Storage bucket. Provide explicit instructions for configuring a private Google Cloud Storage bucket and the Cloud Run service account permissions.
+
+---
+
+# 2. APPLICATION IDENTITY AND DESIGN
+
+Application name: TrustVault
+
+Tagline: Secure Documents. Controlled Access. Verifiable Trust.
+
+Design a premium enterprise cybersecurity SaaS application.
+
+Design inspiration:
+- Modern enterprise security dashboards
+- Professional document management systems
+- Minimal SaaS interfaces
+- Premium financial technology dashboards
+
+Visual design:
+- Dark navy sidebar.
+- White and light-gray workspace.
+- Blue primary actions.
+- Subtle gradients.
+- Professional typography.
+- Rounded cards.
+- Clean tables.
+- Consistent spacing.
+- Responsive layouts.
+- Excellent desktop and mobile experience.
+
+Use a polished visual identity with:
+- TrustVault shield-and-lock logo.
+- Professional login screen.
+- Dashboard statistics.
+- Document security indicators.
+- Role-specific navigation.
+- Activity timeline.
+- Access-control badges.
+- Audit verification indicators.
+
+Do not use generic placeholder dashboards.
+
+All pages must be connected to real backend data.
+
+---
+
+# 3. AUTHENTICATION AND USER ROLES
+
+Implement secure authentication using Firebase Authentication with email and password.
+
+Implement exactly three primary roles:
+
+## ADMINISTRATOR
+
+Administrator capabilities:
+- View system-wide document metadata.
+- View user accounts.
+- Manage user activation and deactivation.
+- View system-wide audit events.
+- View permission grant and revocation history.
+- View failed authorization attempts.
+- View suspicious activity.
+- View audit chain verification status.
+- Manage categories.
+- Manage system settings.
+
+Important:
+Administrator must NOT automatically have permission to read, preview, download, edit, or delete every document.
+
+Administrative privileges are not equivalent to document ownership.
+
+## DOCUMENT OWNER
+
+Owner capabilities:
+- Upload documents.
+- View documents they own.
+- Organize documents into categories.
+- Edit document metadata.
+- Replace document content by creating a new version.
+- Grant READ permissions.
+- Grant EDIT permissions.
+- Revoke previously granted permissions.
+- View access history for owned documents.
+- Soft-delete owned documents.
+- Restore documents when retention rules permit.
+
+Owners must not access another owner's documents without an explicit grant.
+
+## VIEWER
+
+Viewer capabilities:
+- View documents explicitly shared with them.
+- Download documents when READ permission is granted.
+- View document metadata.
+- View their own access history.
+
+A viewer must not:
+- Upload documents.
+- Edit documents.
+- Delete documents.
+- Share documents with other people.
+- Change permissions.
+- Access documents belonging to other users without a grant.
+
+Implement authorization using server-side role and permission checks.
+
+Do not trust roles, document IDs, owner IDs, permission levels, or user IDs supplied by the frontend.
+
+Use Firebase Admin SDK to verify Firebase ID tokens.
+
+Use server-managed roles or trusted Firebase custom claims. Never allow a client to assign its own administrator role.
+
+Provide a secure first-administrator bootstrap procedure using a one-time setup secret or trusted administrative setup script.
+
+Do not hardcode production administrator credentials.
+
+---
+
+# 4. DOCUMENT MANAGEMENT
+
+Create a complete document management system.
+
+Features:
+
+1. Upload documents.
+2. List accessible documents.
+3. View document metadata.
+4. Search documents.
+5. Filter documents.
+6. Download documents.
+7. Edit document metadata.
+8. Replace document content using versioning.
+9. Soft-delete documents.
+10. Restore documents when allowed.
+11. Organize documents by category.
+
+Document metadata:
+
+- Document ID
+- Document name
+- Description
+- Original filename
+- Owner ID
+- Owner email
+- Category
+- MIME type
+- File size
+- SHA-256 content hash
+- Storage object key
+- Created timestamp
+- Updated timestamp
+- Version number
+- Deleted status
+- Retention status
+
+Categories:
+- Contracts
+- Finance
+- HR
+- Legal
+- Technical
+- Audit
+- Confidential
+- General
+
+Support PDF, DOCX, XLSX, PNG, JPG and TXT files.
+
+File validation:
+- Enforce a configurable maximum upload size.
+- Verify actual file signatures (magic bytes).
+- Verify MIME type against detected content.
+- Sanitize filenames.
+- Generate random storage object identifiers.
+- Reject executable files.
+- Reject unsupported file types.
+- Reject empty files.
+- Never trust the filename extension.
+- Prevent path traversal.
+- Never execute uploaded files.
+- Calculate SHA-256 hashes.
+
+Use a configurable maximum file size of 10 MB initially.
+
+Do not expose direct public storage URLs.
+
+Do not store document binary content in Firestore documents.
+
+---
+
+# 5. DOCUMENT-LEVEL PERMISSION SYSTEM
+
+This is the most important part of the application.
+
+Implement an explicit per-document permission model.
+
+Permission levels:
+
+READ:
+- View document metadata.
+- Preview document.
+- Download document.
+
+EDIT:
+- All READ capabilities.
+- Edit permitted metadata.
+- Upload a new document version.
+
+OWNER:
+- Full control over the document.
+- Manage permissions.
+- Revoke access.
+- Delete and restore the document.
+
+Every permission grant must identify:
+- Document ID
+- Grantor user ID
+- Grantee user ID
+- Permission level
+- Created timestamp
+- Optional expiration timestamp
+- Revoked timestamp
+- Current active status
+
+Do not implement folder permission inheritance in this version.
+
+Do not use public links or anonymous access.
+
+Only named authenticated users may receive permissions.
+
+## Authorization rules
+
+Create a centralized backend authorization service.
+
+Implement functions similar to:
+
+- authenticateUser()
+- requireRole()
+- canReadDocument()
+- canEditDocument()
+- canDeleteDocument()
+- canManageDocumentPermissions()
+- requireDocumentAccess()
+
+Every document-related API must invoke the relevant authorization check.
+
+Enforce access checks on:
+- Document list.
+- Document metadata.
+- Document details.
+- Document preview.
+- Document downloads.
+- Document uploads.
+- Document updates.
+- Document version creation.
+- Document deletion.
+- Document restoration.
+- Permission creation.
+- Permission revocation.
+- Audit history.
+
+Never rely on frontend navigation restrictions.
+
+Never rely on hidden buttons.
+
+Never rely on document IDs being difficult to guess.
+
+Prevent IDOR attacks.
+
+Never allow a user to change a request's user ID or owner ID to impersonate another person.
+
+Administrators can inspect metadata and audit records but cannot access document contents unless separately authorized by an explicit grant.
+
+Return a consistent 404 response for unauthorized document access where appropriate, to reduce document existence disclosure.
+
+Record denied attempts in the security audit log.
+
+---
+
+# 6. IMMEDIATE ACCESS REVOCATION
+
+Implement immediate permission revocation.
+
+Rules:
+
+- Do not issue long-lived signed download URLs.
+- Do not expose permanent file URLs.
+- Do not cache protected document content in a public cache.
+- Stream file downloads through authenticated backend endpoints.
+- Check the current permission in the database for every new preview or download request.
+- Recheck permission after revocation.
+- Ensure browser refreshes cannot restore revoked access.
+- Do not rely on cached frontend permission data.
+
+The backend must make the current database permission record authoritative.
+
+Revocation must take effect for all subsequent requests immediately after the revocation transaction commits.
+
+Document and explain the limitation that already downloaded copies cannot be recalled.
+
+Also document how ongoing downloads are handled. Do not claim that an already completed download can be revoked.
+
+---
+
+# 7. SECURE FILE STORAGE
+
+Implement a private storage architecture.
+
+Production:
+- Google Cloud Storage private bucket.
+- Public access prevention enabled.
+- Uniform bucket-level access.
+- Cloud Run service account with least-privilege storage permissions.
+- Random object keys.
+- No public ACLs.
+- No permanent signed URLs.
+- All file operations pass through the authenticated backend.
+
+Development:
+- Store files outside the publicly served frontend directory.
+- Use random object names.
+- Do not expose filesystem paths.
+- Keep the upload directory private.
+
+Download flow:
+
+1. Authenticate the user.
+2. Validate the document ID.
+3. Retrieve the document metadata.
+4. Verify that the document is active and not deleted.
+5. Check ownership or active document-level permission.
+6. Record the authorized download event.
+7. Stream the object through the backend.
+8. Record the outcome.
+
+Never allow a user to directly retrieve a storage object by manipulating an object key.
+
+Use:
+- Cache-Control: no-store, private
+- X-Content-Type-Options: nosniff
+- Content-Disposition with sanitized filenames
+- Secure transport in production
+
+---
+
+# 8. TAMPER-EVIDENT AUDIT TRAIL
+
+Build a security-focused audit system.
+
+Record the following events:
+
+- LOGIN_SUCCESS
+- LOGIN_FAILURE
+- LOGOUT
+- DOCUMENT_UPLOAD
+- DOCUMENT_VIEW
+- DOCUMENT_DOWNLOAD
+- DOCUMENT_UPDATE
+- DOCUMENT_VERSION_CREATED
+- DOCUMENT_DELETE
+- DOCUMENT_RESTORE
+- PERMISSION_GRANTED
+- PERMISSION_REVOKED
+- ACCESS_DENIED
+- USER_CREATED
+- USER_DISABLED
+- ROLE_CHANGED
+- ADMIN_ACTION
+- AUDIT_VERIFICATION
+
+Each event must contain:
+
+- Event ID
+- Actor user ID
+- Actor email
+- Actor role
+- Action
+- Document ID where applicable
+- Target user ID where applicable
+- Timestamp in UTC
+- Outcome
+- Request ID
+- IP address when available
+- User-agent information when available
+- Relevant non-sensitive metadata
+- Previous event hash
+- Current event hash
+
+## Hash-chain protection
+
+Implement an append-only logical audit chain.
+
+Use HMAC-SHA256 with a server-side secret.
+
+Hash calculation must include:
+- Event ID
+- Actor
+- Action
+- Timestamp
+- Target
+- Outcome
+- Previous hash
+
+The first event must reference a defined genesis hash.
+
+Each new event must reference the preceding event hash.
+
+Store the HMAC secret only in server-side environment secrets.
+
+Never expose the HMAC secret to the browser.
+
+Prevent ordinary users and document owners from editing or deleting audit events.
+
+Do not allow client-side Firestore writes to audit collections.
+
+Use a serialized append mechanism or transaction strategy to avoid broken hash chains during concurrent writes.
+
+Implement an audit verification endpoint that detects:
+- Modified events.
+- Missing events.
+- Invalid hashes.
+- Broken chain links.
+- Unexpected sequence changes.
+
+IMPORTANT:
+A hash chain alone does not prevent a privileged attacker from deleting or rewriting the entire chain.
+
+Implement independently stored audit checkpoints in a separate restricted Cloud Storage location or an external immutable logging system where practical.
+
+Document exactly what the checkpoint protects and what it does not protect.
+
+Never claim absolute immutability unless the storage retention and administrative controls actually enforce it.
+
+Record denied access attempts, including failed authorization attempts.
+
+Do not include passwords, authentication tokens, secrets or document contents in audit records.
+
+---
+
+# 9. DATABASE DESIGN
+
+Create a clean Firestore data model.
+
+Collections:
+
+users
+documents
+documentGrants
+documentVersions
+auditEvents
+auditCheckpoints
+documentCategories
+securityAlerts
+systemSettings
+
+Use immutable identifiers.
+
+Store references by user ID rather than relying on email addresses as the primary key.
+
+Use server-side Firestore access through Firebase Admin SDK for sensitive collections.
+
+Implement Firestore Security Rules that deny direct client access to:
+- Document binary metadata that must remain private.
+- Permission records.
+- Audit events.
+- Audit checkpoints.
+- Administrative settings.
+
+Prefer denying client access to all sensitive collections and routing access through verified backend endpoints.
+
+If the client needs to read limited profile data, expose only the minimum necessary fields.
+
+Create database indexes for common document and audit searches.
+
+Provide database setup instructions.
+
+---
+
+# 10. SEARCH AND FILTERS
+
+Implement secure document search.
+
+Search by:
+- Document name.
+- Owner.
+- Category.
+- Upload date.
+- Updated date.
+- File type.
+- Permission status.
+
+CRITICAL:
+Search results must contain only documents that the authenticated user is authorized to access.
+
+Do not query all documents and send unauthorized records to the frontend.
+
+Perform authorization filtering on the server before returning results.
+
+Prevent search filters from becoming an IDOR bypass.
+
+---
+
+# 11. REQUIRED APPLICATION PAGES
+
+Create these complete pages.
+
+## A. Login Page
+- TrustVault branding.
+- Email field.
+- Password field.
+- Password visibility toggle.
+- Remember-me option only if implemented securely.
+- Forgot-password workflow.
+- Loading state.
+- Validation messages.
+- Authentication error handling.
+
+## B. Admin Dashboard
+Display:
+- Total users.
+- Active users.
+- Total documents.
+- Total permission grants.
+- Total downloads.
+- Denied access attempts.
+- Recent activity.
+- Security alerts.
+- Audit verification status.
+
+Provide charts for:
+- Document uploads.
+- Downloads.
+- Permission changes.
+- Failed access attempts.
+
+## C. Owner Dashboard
+Display:
+- My documents.
+- Shared documents.
+- Total downloads.
+- Active grants.
+- Recent activity.
+- Storage usage.
+
+Actions:
+- Upload document.
+- Search documents.
+- Manage documents.
+- Share document.
+- Revoke access.
+- View document audit history.
+
+## D. Viewer Dashboard
+Display:
+- Documents shared with me.
+- Recently accessed documents.
+- Available permissions.
+- Download history.
+
+Do not show unauthorized document names or metadata.
+
+## E. Document Library
+Include:
+- Table and grid views.
+- Search.
+- Category filters.
+- Date filters.
+- Owner filters where appropriate.
+- File type badges.
+- Permission indicators.
+- Document version information.
+
+## F. Upload Document Page
+Include:
+- Drag-and-drop upload.
+- File selection.
+- File validation.
+- Document name.
+- Description.
+- Category selection.
+- Upload progress.
+- Success and failure states.
+
+## G. Document Details Page
+Include:
+- Document metadata.
+- Owner details.
+- Version history.
+- Access permissions.
+- Audit timeline.
+- Authorized download action.
+
+## H. Share Document Modal
+Include:
+- Search users by email.
+- Select READ or EDIT.
+- Optional expiration.
+- Review access before granting.
+- Explicit confirmation.
+- Success and error notifications.
+
+Do not grant access merely because an AI suggestion was selected.
+
+## I. Permission Management Page
+Include:
+- User email.
+- Granted role.
+- Permission level.
+- Granted by.
+- Grant date.
+- Expiration.
+- Active or revoked status.
+- Revoke button.
+- Confirmation dialog.
+
+## J. Audit Dashboard
+Include:
+- Event timeline.
+- Actor.
+- Action.
+- Document.
+- Timestamp.
+- Outcome.
+- Failed access attempts.
+- Filters.
+- Event details.
+- Hash verification.
+- Checkpoint status.
+
+## K. User Management Page
+Admin only:
+- User list.
+- Role.
+- Account status.
+- Create user.
+- Disable user.
+- Reactivate user.
+- Change role with audit logging.
+
+Ensure disabling an account prevents subsequent authenticated API requests.
+
+## L. Settings Page
+Include:
+- Profile.
+- Security information.
+- Password management.
+- Session information.
+- Application configuration visible only to authorized administrators.
+
+---
+
+# 12. API DESIGN
+
+Implement documented REST API endpoints.
+
+Authentication:
+POST /api/auth/session
+POST /api/auth/logout
+GET /api/auth/me
+
+Users:
+GET /api/users
+POST /api/users
+PATCH /api/users/:id
+GET /api/users/me
+
+Documents:
+POST /api/documents
+GET /api/documents
+GET /api/documents/:id
+PATCH /api/documents/:id
+GET /api/documents/:id/download
+GET /api/documents/:id/preview
+DELETE /api/documents/:id
+POST /api/documents/:id/restore
+
+Versions:
+GET /api/documents/:id/versions
+POST /api/documents/:id/versions
+
+Permissions:
+GET /api/documents/:id/permissions
+POST /api/documents/:id/permissions
+DELETE /api/documents/:id/permissions/:grantId
+
+Audit:
+GET /api/audit/events
+GET /api/audit/documents/:id
+POST /api/audit/verify
+GET /api/admin/audit-checkpoints
+
+Admin:
+GET /api/admin/dashboard
+GET /api/admin/users
+GET /api/admin/security-alerts
+
+For each endpoint document:
+- HTTP method.
+- Purpose.
+- Authentication requirement.
+- Allowed roles.
+- Document-level authorization requirement.
+- Request validation.
+- Success response.
+- Failure response.
+
+Never expose an endpoint that returns unrestricted document contents.
+
+---
+
+# 13. SECURITY HARDENING
+
+Implement protection against:
+
+1. Insecure Direct Object Reference (IDOR).
+2. Broken access control.
+3. Privilege escalation.
+4. Horizontal privilege escalation.
+5. Vertical privilege escalation.
+6. Authentication bypass.
+7. Expired or revoked session misuse.
+8. Permission revocation race conditions.
+9. File path traversal.
+10. Malicious filenames.
+11. MIME spoofing.
+12. Executable uploads.
+13. Oversized files.
+14. Zip bombs and decompression abuse.
+15. Cross-site scripting.
+16. Cross-site request forgery where applicable.
+17. SQL/NoSQL injection.
+18. Mass assignment.
+19. Insecure direct storage access.
+20. Public bucket exposure.
+21. Download URL leakage.
+22. Audit event modification.
+23. Audit event deletion.
+24. Audit chain concurrency errors.
+25. Replay attacks.
+26. Rate-limit bypass.
+27. Account enumeration.
+28. Brute-force login.
+29. Insecure CORS.
+30. Sensitive information leakage through errors.
+31. Browser caching of confidential files.
+32. Disabled-user access.
+33. Unauthorized document search.
+34. Permission grant to arbitrary user IDs.
+35. Concurrent grant and revoke operations.
+
+Use:
+- Strict input validation.
+- Rate limiting.
+- Secure headers.
+- Restricted CORS.
+- Safe error responses.
+- Request size limits.
+- Secure cookies or carefully protected bearer-token handling.
+- Production HTTPS.
+- Environment secrets.
+- Least-privilege service accounts.
+- Server-side authorization for every protected request.
+
+Do not log passwords, tokens, file contents or secrets.
+
+---
+
+# 14. AI-ASSISTED PERMISSION SUGGESTIONS (OPTIONAL)
+
+If you implement Gemini AI integration, it may suggest possible recipients based on document category and owner-provided context.
+
+Rules:
+- AI can only suggest.
+- AI cannot grant permissions.
+- AI cannot revoke permissions.
+- AI cannot change roles.
+- AI cannot access confidential document contents without authorization.
+- Owner must explicitly review and confirm every grant.
+- Log the suggestion and the human decision in the audit trail.
+- Clearly label suggestions as AI-generated.
+
+If this cannot be implemented securely, leave it out and document why.
+
+---
+
+# 15. AUTOMATED SECURITY TESTS
+
+Write real backend tests, not just frontend tests.
+
+At minimum test:
+
+Authentication:
+- Unauthenticated requests are rejected.
+- Invalid tokens are rejected.
+- Disabled accounts cannot access APIs.
+- Viewer cannot become admin.
+
+Document isolation:
+- Owner A cannot read Owner B's document.
+- Owner A cannot download Owner B's document.
+- Owner A cannot edit Owner B's document.
+- Owner A cannot delete Owner B's document.
+- Viewer A cannot access Viewer B's private document.
+- Guessing another document ID does not bypass authorization.
+
+Permission tests:
+- READ allows download and preview.
+- READ does not allow editing.
+- EDIT allows permitted updates.
+- Revoked READ no longer permits access.
+- Revoked EDIT no longer permits modifications.
+- Expired grants no longer permit access.
+- A user cannot grant themselves permission.
+- An owner cannot revoke another owner's grants.
+
+Storage tests:
+- Storage objects are not public.
+- Changing object IDs does not bypass checks.
+- Unauthorized downloads do not return file bytes.
+- Unsupported file types are rejected.
+- Spoofed MIME types are rejected.
+- Oversized uploads are rejected.
+
+Audit tests:
+- Successful uploads generate audit events.
+- Successful downloads generate audit events.
+- Denied downloads generate audit events.
+- Permission grants are recorded.
+- Permission revocations are recorded.
+- Modified audit events fail verification.
+- Missing events are detected when anchored checkpoints are available.
+- Concurrent audit writes preserve a valid chain.
+
+Revocation tests:
+- Grant access.
+- Successfully download.
+- Revoke permission.
+- Attempt another download with the same authenticated account.
+- Verify that the second request fails.
+
+Mutation testing:
+- Include tests or a documented manual mutation procedure proving that removing the centralized authorization check causes the security test suite to fail.
+
+Every test must assert actual backend responses and data access. Do not write tests that simply check whether buttons are hidden.
+
+All tests must be runnable using documented commands.
+
+---
+
+# 16. SEED DATA AND DEMO ACCOUNTS
+
+Create a safe demo initialization script.
+
+Create these four demo accounts in a development or test environment:
+
+Admin:
+admin@trustvault.local
+
+Owner:
+owner@trustvault.local
+
+Viewer:
+viewer@trustvault.local
+
+Other Viewer:
+other@trustvault.local
+
+Do not hardcode demo passwords into production source code.
+
+Generate passwords during local setup or use environment variables.
+
+Document the setup process.
+
+Create sample documents with non-confidential demo content.
+
+Create sample permission records:
+- Owner has full control over their own documents.
+- Viewer has READ access to one sample document.
+- Other Viewer has no access to that document.
+
+Never use real confidential data in seed records.
+
+---
+
+# 17. REQUIRED PROJECT FILES
+
+Generate and maintain these files:
+
+README.md
+THREATS.md
+PROMPTS.md
+API.md
+SECURITY.md
+DEPLOYMENT.md
+SUBMISSION.md
+.env.example
+.gitignore
+Dockerfile
+package.json
+tsconfig.json
+
+Also generate:
+
+- Complete frontend source.
+- Complete backend source.
+- Database setup and security rules.
+- Storage configuration instructions.
+- Seed scripts.
+- Automated tests.
+- Test configuration.
+- Deployment configuration.
+- Sample environment configuration.
+
+## THREATS.md
+
+Create a detailed threat model.
+
+For each threat include:
+- Threat description.
+- Attack scenario.
+- Potential impact.
+- Mitigation.
+- Relevant test.
+- Residual risk.
+- Whether accepted or mitigated.
+
+Include more than 20 realistic threats.
+
+Be honest about unresolved risks.
+
+## PROMPTS.md
+
+Document real AI-assisted development sessions.
+
+Create dated entries as development progresses.
+
+Each entry must contain:
+- Date.
+- Actual prompt or fair summary.
+- What AI generated.
+- Specific errors or security weaknesses discovered.
+- Manual corrections.
+- Actual Git commit link once committed.
+
+At least two entries must cover authorization or audit security.
+
+Do not fabricate completed sessions, errors, commits or commit URLs.
+
+Provide templates for at least five development entries and fill them only when the work actually occurs.
+
+---
+
+# 18. TESTING AND QUALITY REQUIREMENTS
+
+Do not declare the project complete just because the frontend renders.
+
+After generating the application:
+
+1. Install all dependencies.
+2. Run TypeScript type checking.
+3. Run linting.
+4. Run automated backend tests.
+5. Run security tests.
+6. Run the production build.
+7. Fix all errors.
+8. Verify Firebase initialization.
+9. Verify backend connectivity.
+10. Verify file storage.
+11. Verify login for all roles.
+12. Verify document sharing.
+13. Verify access revocation.
+14. Verify audit logging.
+15. Verify audit chain validation.
+
+Do not hide errors using empty catch blocks.
+
+Do not return fake success responses.
+
+Do not use mock data as a replacement for required backend features.
+
+If a cloud resource cannot be provisioned automatically, provide exact setup instructions and clearly identify the missing resource.
+
+Do not claim a test passed unless it was actually executed.
+
+Do not claim deployment succeeded unless the deployed URL has been tested.
+
+---
+
+# 19. DEPLOYMENT
+
+Prepare the project for Google Cloud Run.
+
+Requirements:
+- Production build.
+- Server-side environment variables.
+- Firebase Admin SDK credentials through secure service identity.
+- Private Google Cloud Storage bucket.
+- Firestore configuration.
+- HTTPS.
+- Restricted CORS.
+- Health check endpoint.
+- Structured server logging.
+- Error monitoring instructions.
+
+Create a deployment guide that explains:
+1. Firebase setup.
+2. Authentication provider configuration.
+3. Firestore creation.
+4. Firestore Security Rules deployment.
+5. Google Cloud Storage bucket creation.
+6. Cloud Run service account configuration.
+7. Environment variable configuration.
+8. Build and deployment.
+9. Production smoke tests.
+
+Do not configure Vercel as the default host. Use Google Cloud Run for this Google AI Studio project.
+
+---
+
+# 20. FINAL ACCEPTANCE CRITERIA
+
+The application is complete only when:
+
+- All three roles authenticate correctly.
+- Owners can upload documents.
+- Documents are stored privately.
+- Permissions are assigned per document.
+- READ and EDIT behave differently.
+- Unauthorized users cannot access documents through any API.
+- Owners can revoke access.
+- Revoked access fails on subsequent requests.
+- All significant activities generate audit events.
+- Failed access attempts are recorded.
+- Audit chain verification works.
+- Search returns only authorized documents.
+- File validation works.
+- Administrative dashboard displays real data.
+- Security tests pass.
+- Production build succeeds.
+- Documentation is complete.
+
+---
+
+# 21. HOW YOU MUST WORK
+
+Follow this development sequence:
+
+PHASE 1: Analyze the requirements and create the architecture.
+
+PHASE 2: Set up React, TypeScript, Node.js, Firebase Authentication and Firestore.
+
+PHASE 3: Implement authentication and role management.
+
+PHASE 4: Implement the centralized authorization service.
+
+PHASE 5: Implement private document storage and validation.
+
+PHASE 6: Implement document permissions and immediate revocation.
+
+PHASE 7: Implement tamper-evident audit logging.
+
+PHASE 8: Implement dashboards and user interfaces.
+
+PHASE 9: Implement automated security tests.
+
+PHASE 10: Write documentation and deployment configuration.
+
+PHASE 11: Run the full test suite, fix errors, and verify the application.
+
+Do not skip phases.
+
+Do not replace unfinished backend functionality with frontend mockups.
+
+When a feature is too large to finish in one generation, continue editing the existing project in subsequent steps. Do not delete working features or regenerate the project from scratch.
+
+Before finishing, provide:
+- Actual project folder structure.
+- Implemented feature checklist.
+- Commands to run locally.
+- Firebase setup instructions.
+- Demo login setup instructions.
+- Test execution results.
+- Deployment instructions.
+- Known limitations.
+- Remaining security risks.
+
+**FINAL INSTRUCTION: Build TrustVault as a real, functional, security-first full-stack application. Prioritize authorization correctness, private file delivery, immediate revocation and verifiable audit evidence over visual effects or unnecessary features. Never claim security guarantees that the implementation and tests cannot prove.**

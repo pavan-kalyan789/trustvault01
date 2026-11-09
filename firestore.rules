@@ -1,0 +1,41 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Zero-Trust Perimeter: Deny direct client-side mutations to sensitive collections.
+    // All access must be routed through the server-side authorization service.
+
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // Admin backend only
+    }
+
+    match /documents/{documentId} {
+      allow read: if false; // Managed by server authorization service
+      allow write: if false;
+    }
+
+    match /documentGrants/{grantId} {
+      allow read, write: if false; // Strict server-side only
+    }
+
+    match /documentVersions/{versionId} {
+      allow read, write: if false;
+    }
+
+    match /auditEvents/{eventId} {
+      allow read, write: if false; // Immutable, append-only via server HMAC
+    }
+
+    match /auditCheckpoints/{checkpointId} {
+      allow read, write: if false;
+    }
+
+    match /securityAlerts/{alertId} {
+      allow read, write: if false;
+    }
+
+    match /systemSettings/{settingId} {
+      allow read, write: if false;
+    }
+  }
+}

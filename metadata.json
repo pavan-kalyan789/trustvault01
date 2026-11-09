@@ -1,0 +1,6 @@
+{
+  "name": "TrustVault",
+  "description": "Enterprise secure document sharing platform with immediate permission revocation and tamper-evident HMAC audit trail.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
