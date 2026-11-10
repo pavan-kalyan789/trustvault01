@@ -76,6 +76,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
+      // Seamless entry: Auto-authenticate default Owner account without requiring sign in
+      try {
+        const demoAuth = await api.demoLogin('owner');
+        if (isMounted && demoAuth && demoAuth.user) {
+          setUser(demoAuth.user);
+          setLoading(false);
+          return;
+        }
+      } catch (err: any) {
+        console.warn('[TrustVault] Auto-login fallback error:', err?.message || err);
+      }
+
       if (isMounted) {
         setUser(null);
         setLoading(false);
@@ -118,9 +130,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setLoading(true);
     try {
       await api.logout();
-    } finally {
-      api.setToken(null);
+    } catch {}
+    // Reset directly to default demo account rather than dumping user to a blank login page
+    try {
+      const demoAuth = await api.demoLogin('owner');
+      setUser(demoAuth.user);
+    } catch {
       setUser(null);
+    } finally {
       setError(null);
       setLoading(false);
     }
