@@ -3,7 +3,7 @@
 
 services:
   - type: web
-    name: trustvault
+    name: trustvault01
     env: node
     plan: free
     buildCommand: npm install && npm run build

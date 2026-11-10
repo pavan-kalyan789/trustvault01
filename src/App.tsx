@@ -128,17 +128,20 @@ const MainLayout: React.FC = () => {
               <>
                 {user.role === 'admin' ? (
                   <AdminDashboard
+                    key={`admin-${user.id}`}
                     onNavigateToPentest={() => setCurrentTab('security-suite')}
                     onNavigateToAudit={() => setCurrentTab('audit')}
                   />
                 ) : user.role === 'owner' ? (
                   <OwnerDashboard
+                    key={`owner-${user.id}`}
                     onOpenUpload={() => setCurrentTab('upload')}
                     onSelectDocument={doc => setSelectedDocForDetails(doc)}
                     onShareDocument={doc => setSelectedDocForShare(doc)}
                   />
                 ) : (
                   <ViewerDashboard
+                    key={`viewer-${user.id}`}
                     onSelectDocument={doc => setSelectedDocForDetails(doc)}
                   />
                 )}

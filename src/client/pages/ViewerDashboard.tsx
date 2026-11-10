@@ -42,7 +42,7 @@ export const ViewerDashboard: React.FC<ViewerDashboardProps> = ({ onSelectDocume
 
   useEffect(() => {
     fetchDocs();
-  }, []);
+  }, [user?.id]);
 
   const handleDownload = async (doc: DocumentRecord) => {
     setActionError(null);

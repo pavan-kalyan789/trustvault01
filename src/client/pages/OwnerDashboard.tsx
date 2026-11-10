@@ -51,7 +51,7 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
 
   useEffect(() => {
     fetchDocs();
-  }, []);
+  }, [user?.id]);
 
   const ownedDocs = documents.filter(d => d.ownerId === user?.id);
   const sharedWithMe = documents.filter(d => d.ownerId !== user?.id);

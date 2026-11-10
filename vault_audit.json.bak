@@ -1,0 +1,430 @@
+{
+  "_schema": "TrustVault Enterprise Audit Ledger JSON",
+  "_version": "1.0",
+  "_lastSaved": "2026-11-10T10:24:47.381Z",
+  "filePath": "vault_audit.json",
+  "events": [
+    {
+      "id": "evt_af024f0c-c9ee-42b8-a904-16ad875f7ba4",
+      "actorId": "usr_admin_001",
+      "actorEmail": "admin@trustvault.local",
+      "actorRole": "admin",
+      "action": "USER_CREATED",
+      "documentId": null,
+      "targetUserId": "usr_owner_001",
+      "timestamp": "2026-11-10T09:55:33.276Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_ec1c24bd44e5",
+      "ip": "127.0.0.1",
+      "userAgent": "TrustVault-Core",
+      "metadata": {
+        "note": "Initial system provisioning"
+      },
+      "prevHash": "0000000000000000000000000000000000000000000000000000000000000000genesis",
+      "hash": "c0bb7aa7554c5d77581e5a51bb23bdbdc04874f7b1703aa397324abf82c2f3da"
+    },
+    {
+      "id": "evt_8d90a336-4714-40e6-83ed-f673e1275bf5",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "actorRole": "owner",
+      "action": "DOCUMENT_UPLOAD",
+      "documentId": "doc_msa_2026",
+      "targetUserId": null,
+      "timestamp": "2026-11-10T09:55:33.277Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_d8af06152f13",
+      "ip": "127.0.0.1",
+      "userAgent": "TrustVault-Core",
+      "metadata": {
+        "filename": "Master_Services_Agreement_2026.pdf",
+        "size": 486,
+        "hash": "cac9dde1b0c00b2e290123b8458cf277b3f29bd9f2fbd6d420704f75b79c9e3d"
+      },
+      "prevHash": "c0bb7aa7554c5d77581e5a51bb23bdbdc04874f7b1703aa397324abf82c2f3da",
+      "hash": "940ff86ab62efd0d60791151138617c32e1d2c946e4c2bd5c197f2cb39a52f90"
+    },
+    {
+      "id": "evt_411de156-d1b2-42e5-8689-01a2186b3892",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "actorRole": "owner",
+      "action": "DOCUMENT_UPLOAD",
+      "documentId": "doc_audit_q3",
+      "targetUserId": null,
+      "timestamp": "2026-11-10T09:55:33.277Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_ae5a01c14220",
+      "ip": "127.0.0.1",
+      "userAgent": "TrustVault-Core",
+      "metadata": {
+        "filename": "Q3_Financial_Audit_Report.pdf",
+        "size": 486,
+        "category": "Confidential"
+      },
+      "prevHash": "940ff86ab62efd0d60791151138617c32e1d2c946e4c2bd5c197f2cb39a52f90",
+      "hash": "dc0edc45424949713a16ca3357239f584014002318b8cc3a8647727598c7e8c8"
+    },
+    {
+      "id": "evt_1925e57f-d1cd-4333-b7a9-6d679c95b2db",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "actorRole": "owner",
+      "action": "PERMISSION_GRANTED",
+      "documentId": "doc_msa_2026",
+      "targetUserId": "usr_viewer_001",
+      "timestamp": "2026-11-10T09:55:33.277Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_1b1a69392ad7",
+      "ip": "127.0.0.1",
+      "userAgent": "TrustVault-Core",
+      "metadata": {
+        "level": "READ",
+        "grantee": "viewer@trustvault.local"
+      },
+      "prevHash": "dc0edc45424949713a16ca3357239f584014002318b8cc3a8647727598c7e8c8",
+      "hash": "0ee617f795e81a4396c9cd212ca3af3201528ebda9a369083cb8068cd8d1cd7d"
+    },
+    {
+      "id": "evt_c672ed87-f245-4adf-b9de-119f12f2ec2e",
+      "actorId": "usr_admin_001",
+      "actorEmail": "admin@trustvault.local",
+      "actorRole": "admin",
+      "action": "LOGIN_SUCCESS",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:05:30.550Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_e9d54d8cd8c2",
+      "ip": "127.0.0.1",
+      "userAgent": "curl/7.88.1",
+      "metadata": {
+        "role": "admin",
+        "method": "DEMO_DIRECT_AUTHENTICATION"
+      },
+      "prevHash": "0ee617f795e81a4396c9cd212ca3af3201528ebda9a369083cb8068cd8d1cd7d",
+      "hash": "d509436285e164a93baf32b4bcffa7d0e1c7d858412a7027332525f64f1ebda3"
+    },
+    {
+      "id": "evt_9bd2cb8f-1f03-44e0-8924-ee1d0470d541",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "actorRole": "owner",
+      "action": "LOGIN_SUCCESS",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:05:30.576Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_439073555fe4",
+      "ip": "127.0.0.1",
+      "userAgent": "curl/7.88.1",
+      "metadata": {
+        "role": "owner",
+        "method": "DEMO_DIRECT_AUTHENTICATION"
+      },
+      "prevHash": "d509436285e164a93baf32b4bcffa7d0e1c7d858412a7027332525f64f1ebda3",
+      "hash": "be49facfa844ce6279cfffe6c60c35fea52d0ec1c21a22e62adc9f2ca92f50f7"
+    },
+    {
+      "id": "evt_4c1039bf-e910-45db-b584-e38a785389c7",
+      "actorId": "usr_viewer_001",
+      "actorEmail": "viewer@trustvault.local",
+      "actorRole": "viewer",
+      "action": "LOGIN_SUCCESS",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:05:30.595Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_e430053a949f",
+      "ip": "127.0.0.1",
+      "userAgent": "curl/7.88.1",
+      "metadata": {
+        "role": "viewer",
+        "method": "DEMO_DIRECT_AUTHENTICATION"
+      },
+      "prevHash": "be49facfa844ce6279cfffe6c60c35fea52d0ec1c21a22e62adc9f2ca92f50f7",
+      "hash": "99e935e33f18452d28a8535176409b31d780b72222a31e978f910abc35fde7c2"
+    },
+    {
+      "id": "evt_273ebdfd-b8b8-47b2-8c04-622f88024856",
+      "actorId": "usr_other_001",
+      "actorEmail": "other@trustvault.local",
+      "actorRole": "viewer",
+      "action": "LOGIN_SUCCESS",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:05:30.614Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_1167f857e525",
+      "ip": "127.0.0.1",
+      "userAgent": "curl/7.88.1",
+      "metadata": {
+        "role": "viewer",
+        "method": "DEMO_DIRECT_AUTHENTICATION"
+      },
+      "prevHash": "99e935e33f18452d28a8535176409b31d780b72222a31e978f910abc35fde7c2",
+      "hash": "967ed149926bbf1f5e4ca8ae8f0e04691d9b90d2322a123df720ac2234c51758"
+    },
+    {
+      "id": "evt_ed76cfe8-8e81-4f72-8d55-54c6e23420dd",
+      "actorId": "usr_admin_001",
+      "actorEmail": "admin@trustvault.local",
+      "actorRole": "admin",
+      "action": "LOGIN_SUCCESS",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:05:35.616Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_fb465c986fe2",
+      "ip": "127.0.0.1",
+      "userAgent": "curl/7.88.1",
+      "metadata": {
+        "role": "admin",
+        "method": "DEMO_DIRECT_AUTHENTICATION"
+      },
+      "prevHash": "967ed149926bbf1f5e4ca8ae8f0e04691d9b90d2322a123df720ac2234c51758",
+      "hash": "c02b02bcd385f6d4faeea2bddf1851ecbf7f4cf268c5fd0dc06162707d9368e4"
+    },
+    {
+      "id": "evt_478ed6ad-a021-4a1d-ac66-52b31dd26635",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "actorRole": "owner",
+      "action": "LOGIN_SUCCESS",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:16:18.068Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_8029b7edb126",
+      "ip": "2402:8100:21e7:c947::d25:f18e",
+      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36",
+      "metadata": {
+        "role": "owner",
+        "method": "DEMO_DIRECT_AUTHENTICATION"
+      },
+      "prevHash": "c02b02bcd385f6d4faeea2bddf1851ecbf7f4cf268c5fd0dc06162707d9368e4",
+      "hash": "5c2d11a10702150739b162983c1ab8fa87017222f04e202d042803e5bb05fc45"
+    },
+    {
+      "id": "evt_2bce8dbc-35e6-4b10-824e-7e187d780b7b",
+      "actorId": "usr_admin_001",
+      "actorEmail": "admin@trustvault.local",
+      "actorRole": "admin",
+      "action": "LOGIN_SUCCESS",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:16:28.318Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_16e48254ceff",
+      "ip": "2402:8100:21e7:c947::d25:f18e",
+      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36",
+      "metadata": {
+        "role": "admin",
+        "method": "DEMO_DIRECT_AUTHENTICATION"
+      },
+      "prevHash": "5c2d11a10702150739b162983c1ab8fa87017222f04e202d042803e5bb05fc45",
+      "hash": "5f11353d71e27cb87c476e85a5cfa8d02fa292bfbdc9c289df346a0679aeba60"
+    },
+    {
+      "id": "evt_4dc26763-b683-4046-b97e-a2fa513a6ae3",
+      "actorId": "usr_viewer_001",
+      "actorEmail": "viewer@trustvault.local",
+      "actorRole": "viewer",
+      "action": "LOGIN_SUCCESS",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:16:31.490Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_ba61c37b1421",
+      "ip": "2402:8100:21e7:c947::d25:f18e",
+      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36",
+      "metadata": {
+        "role": "viewer",
+        "method": "DEMO_DIRECT_AUTHENTICATION"
+      },
+      "prevHash": "5f11353d71e27cb87c476e85a5cfa8d02fa292bfbdc9c289df346a0679aeba60",
+      "hash": "32eb61e2dbdc812113cb57d3182e8fb4ddda18c0895cf34b98333f0d0a63d109"
+    },
+    {
+      "id": "evt_d28ce1eb-8078-4ef4-9ec8-d05be002d202",
+      "actorId": "usr_other_001",
+      "actorEmail": "other@trustvault.local",
+      "actorRole": "viewer",
+      "action": "LOGIN_SUCCESS",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:16:32.617Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_05adcf34e332",
+      "ip": "2402:8100:21e7:c947::d25:f18e",
+      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36",
+      "metadata": {
+        "role": "viewer",
+        "method": "DEMO_DIRECT_AUTHENTICATION"
+      },
+      "prevHash": "32eb61e2dbdc812113cb57d3182e8fb4ddda18c0895cf34b98333f0d0a63d109",
+      "hash": "eafc48e8d20d5fcd4f9a2d6d290ccf9dfd102f86394865c7efe2476e5189ba42"
+    },
+    {
+      "id": "evt_bf7d16d9-2c3a-41c9-a16b-82915b863902",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "actorRole": "owner",
+      "action": "LOGIN_SUCCESS",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:16:33.770Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_74849b7d07b1",
+      "ip": "2402:8100:21e7:c947::d25:f18e",
+      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36",
+      "metadata": {
+        "role": "owner",
+        "method": "DEMO_DIRECT_AUTHENTICATION"
+      },
+      "prevHash": "eafc48e8d20d5fcd4f9a2d6d290ccf9dfd102f86394865c7efe2476e5189ba42",
+      "hash": "59bf636ca771bc4556c0c67c30795f49906a96b4c8ec5efbc0296e467fe3a1e8"
+    },
+    {
+      "id": "evt_4a8bf7f0-5c97-45c0-8e65-85299f6ada9a",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "actorRole": "owner",
+      "action": "DOCUMENT_VIEW",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:19:08.406Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_948abc1508a3",
+      "ip": "127.0.0.1",
+      "userAgent": "TrustVault-Core",
+      "metadata": {
+        "concurrentIndex": 0
+      },
+      "prevHash": "59bf636ca771bc4556c0c67c30795f49906a96b4c8ec5efbc0296e467fe3a1e8",
+      "hash": "af5d575bd98ab335c254da9a71c523d279a3e9925c6adf11eb4d9be46fed3d1e"
+    },
+    {
+      "id": "evt_9bb1c8ac-f91f-44d0-b912-4e626c74ebad",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "actorRole": "owner",
+      "action": "DOCUMENT_VIEW",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:19:08.406Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_f3bf4c89a973",
+      "ip": "127.0.0.1",
+      "userAgent": "TrustVault-Core",
+      "metadata": {
+        "concurrentIndex": 1
+      },
+      "prevHash": "af5d575bd98ab335c254da9a71c523d279a3e9925c6adf11eb4d9be46fed3d1e",
+      "hash": "913f7723355797ee44db9d95c12c3e040cc39f0951ca2d21b11ced7fe21dfa20"
+    },
+    {
+      "id": "evt_6c1854cb-0251-483d-b60b-a8a299b2544a",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "actorRole": "owner",
+      "action": "DOCUMENT_VIEW",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:19:08.406Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_1332068347bf",
+      "ip": "127.0.0.1",
+      "userAgent": "TrustVault-Core",
+      "metadata": {
+        "concurrentIndex": 2
+      },
+      "prevHash": "913f7723355797ee44db9d95c12c3e040cc39f0951ca2d21b11ced7fe21dfa20",
+      "hash": "3176b25c7505b8e8b72cf75890503469d1ac408e82cdd650767fd976db916908"
+    },
+    {
+      "id": "evt_6f3fd28e-37e2-49f0-be10-aacd0726d1da",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "actorRole": "owner",
+      "action": "DOCUMENT_VIEW",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:19:08.406Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_1b36f3550b3a",
+      "ip": "127.0.0.1",
+      "userAgent": "TrustVault-Core",
+      "metadata": {
+        "concurrentIndex": 3
+      },
+      "prevHash": "3176b25c7505b8e8b72cf75890503469d1ac408e82cdd650767fd976db916908",
+      "hash": "09fda118f26ecb4a8c06a055eda7353729419bbd00ecdc88e0e805a4dac1969a"
+    },
+    {
+      "id": "evt_c65c87bc-e64b-4d12-9020-82c77786066a",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "actorRole": "owner",
+      "action": "DOCUMENT_VIEW",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:19:08.406Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_fcd11959cc42",
+      "ip": "127.0.0.1",
+      "userAgent": "TrustVault-Core",
+      "metadata": {
+        "concurrentIndex": 4
+      },
+      "prevHash": "09fda118f26ecb4a8c06a055eda7353729419bbd00ecdc88e0e805a4dac1969a",
+      "hash": "285dad071ca06b024ed63ba1407c7f829b94750d15d8c51b2111c7c432d2e875"
+    },
+    {
+      "id": "evt_0ad6694c-d753-42c9-8f50-6ce4bbd4261c",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "actorRole": "owner",
+      "action": "LOGIN_SUCCESS",
+      "documentId": null,
+      "targetUserId": null,
+      "timestamp": "2026-11-10T10:24:47.331Z",
+      "outcome": "SUCCESS",
+      "requestId": "req_c51934481fd1",
+      "ip": "2402:8100:21e7:c947::d25:f18e",
+      "userAgent": "Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Mobile Safari/537.36",
+      "metadata": {
+        "role": "owner",
+        "method": "DEMO_DIRECT_AUTHENTICATION"
+      },
+      "prevHash": "285dad071ca06b024ed63ba1407c7f829b94750d15d8c51b2111c7c432d2e875",
+      "hash": "49976fc6f070733ff129741c8518c7151c99755bb0d871b7909e000d8eea1f16"
+    }
+  ],
+  "checkpoints": [
+    {
+      "id": "chk_05a897ee-f13e-40c8-84e3-9ee6821f9ee2",
+      "timestamp": "2026-11-10T09:55:33.278Z",
+      "lastEventId": "evt_1925e57f-d1cd-4333-b7a9-6d679c95b2db",
+      "lastEventHash": "0ee617f795e81a4396c9cd212ca3af3201528ebda9a369083cb8068cd8d1cd7d",
+      "totalEventsCount": 4,
+      "signature": "9058c1db045a62d7bf19a1a17bc33b3a40089df59cb0c8486e6a9a3826d51566"
+    },
+    {
+      "id": "chk_530cacc5-45fb-4508-b271-140d97d657e8",
+      "timestamp": "2026-11-10T10:19:08.408Z",
+      "lastEventId": "evt_c65c87bc-e64b-4d12-9020-82c77786066a",
+      "lastEventHash": "285dad071ca06b024ed63ba1407c7f829b94750d15d8c51b2111c7c432d2e875",
+      "totalEventsCount": 19,
+      "signature": "c609cfa700c5bc987ce25110f184af5c67323c0d1dfdab4e7f8ddbf20fb4514a"
+    },
+    {
+      "id": "chk_82b63be6-ca44-4c15-a82b-9db49c67a850",
+      "timestamp": "2026-11-10T10:24:47.331Z",
+      "lastEventId": "evt_0ad6694c-d753-42c9-8f50-6ce4bbd4261c",
+      "lastEventHash": "49976fc6f070733ff129741c8518c7151c99755bb0d871b7909e000d8eea1f16",
+      "totalEventsCount": 20,
+      "signature": "efc81f58508d0f007d62b315345b817041a9736e03abc33f348f937d5e748480"
+    }
+  ]
+}

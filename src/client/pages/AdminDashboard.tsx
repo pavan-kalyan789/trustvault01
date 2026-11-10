@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { api, type AdminDashboardData } from '../api.js';
+import { useAuth } from '../context/AuthContext.js';
 import {
   ShieldAlert,
   Users,
@@ -26,6 +27,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   onNavigateToPentest,
   onNavigateToAudit
 }) => {
+  const { user } = useAuth();
   const [data, setData] = useState<AdminDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,6 +35,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
   const fetchData = async () => {
     try {
       setLoading(true);
+      setError(null);
       const res = await api.getAdminDashboard();
       setData(res);
     } catch (err: any) {
@@ -44,7 +47,7 @@ export const AdminDashboard: React.FC<AdminDashboardProps> = ({
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user?.id]);
 
   if (loading) {
     return (

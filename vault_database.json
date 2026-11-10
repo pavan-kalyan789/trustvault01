@@ -1,0 +1,207 @@
+{
+  "_schema": "TrustVault Enterprise JSON Database",
+  "_version": "1.0",
+  "_lastSaved": "2026-11-10T10:33:27.110Z",
+  "filePath": "vault_database.json",
+  "users": [
+    {
+      "id": "usr_admin_001",
+      "email": "admin@trustvault.local",
+      "displayName": "Chief Security Officer (Admin)",
+      "role": "admin",
+      "passwordHash": "595f8e0fc2cd2b49f1eb7063da7ce98c65e5a5fe8a5db2e31b84d8a444d1b09e",
+      "active": true,
+      "createdAt": "2026-01-10T08:00:00.000Z",
+      "lastLoginAt": "2026-11-10T10:33:27.026Z"
+    },
+    {
+      "id": "usr_owner_001",
+      "email": "owner@trustvault.local",
+      "displayName": "Sarah Chen (Legal Counsel / Owner)",
+      "role": "owner",
+      "passwordHash": "09e158f1404c99cf6d06a33ed5f9ca2bc87fb0fe258badfb449ed066b214e4dd",
+      "active": true,
+      "createdAt": "2026-01-10T08:05:00.000Z",
+      "lastLoginAt": "2026-11-10T10:33:27.030Z"
+    },
+    {
+      "id": "usr_viewer_001",
+      "email": "viewer@trustvault.local",
+      "displayName": "Marcus Vance (Compliance Auditor / Viewer)",
+      "role": "viewer",
+      "passwordHash": "1a1a0e8b386a44deb55d6c76b89dd178c14dc342439fe2792034f60f3c23bf0a",
+      "active": true,
+      "createdAt": "2026-01-10T08:10:00.000Z",
+      "lastLoginAt": "2026-11-10T10:33:27.035Z"
+    },
+    {
+      "id": "usr_other_001",
+      "email": "other@trustvault.local",
+      "displayName": "Alex Morgan (External Contractor / Viewer)",
+      "role": "viewer",
+      "passwordHash": "6f6153b0a4517a7daa4c353d10960af7ee65d8d0948a3815436cc352a69aa8e5",
+      "active": true,
+      "createdAt": "2026-01-10T08:15:00.000Z",
+      "lastLoginAt": "2026-11-10T10:33:27.039Z"
+    }
+  ],
+  "documents": [
+    {
+      "id": "doc_msa_2026",
+      "name": "Master Services Agreement 2026",
+      "description": "Bilateral SaaS enterprise SLA and mutual NDA terms.",
+      "originalFilename": "Master_Services_Agreement_2026.pdf",
+      "ownerId": "usr_owner_001",
+      "ownerEmail": "owner@trustvault.local",
+      "category": "Contracts",
+      "mimeType": "application/pdf",
+      "size": 486,
+      "sha256Hash": "cac9dde1b0c00b2e290123b8458cf277b3f29bd9f2fbd6d420704f75b79c9e3d",
+      "storageKey": "obj_ac0d4ea2-8ce9-4eab-84e3-2af98838201c.bin",
+      "createdAt": "2026-01-15T10:00:00.000Z",
+      "updatedAt": "2026-01-15T10:00:00.000Z",
+      "version": 1,
+      "isDeleted": false,
+      "retentionStatus": "active"
+    },
+    {
+      "id": "doc_audit_q3",
+      "name": "Q3 Financial Audit & Ledger Reconciliation",
+      "description": "Internal financial audit report and variance analysis. Strictly confidential.",
+      "originalFilename": "Q3_Financial_Audit_Report.pdf",
+      "ownerId": "usr_owner_001",
+      "ownerEmail": "owner@trustvault.local",
+      "category": "Confidential",
+      "mimeType": "application/pdf",
+      "size": 486,
+      "sha256Hash": "cac9dde1b0c00b2e290123b8458cf277b3f29bd9f2fbd6d420704f75b79c9e3d",
+      "storageKey": "obj_9c72341c-98c9-4908-96b0-d151603d782b.bin",
+      "createdAt": "2026-02-01T14:30:00.000Z",
+      "updatedAt": "2026-02-01T14:30:00.000Z",
+      "version": 1,
+      "isDeleted": false,
+      "retentionStatus": "active"
+    },
+    {
+      "id": "doc_handbook_v4",
+      "name": "Employee Security Handbook v4",
+      "description": "Information security guidelines and acceptable use policy.",
+      "originalFilename": "Employee_Handbook_v4.txt",
+      "ownerId": "usr_owner_001",
+      "ownerEmail": "owner@trustvault.local",
+      "category": "HR",
+      "mimeType": "text/plain",
+      "size": 218,
+      "sha256Hash": "8f01f2a70f83d0740855b52cc2a0d0ecec85f3c0fcdd9dfe3eb34771f665d2f6",
+      "storageKey": "obj_063b4c99-7fca-4ce6-a55e-df9c537138d9.bin",
+      "createdAt": "2026-02-10T09:15:00.000Z",
+      "updatedAt": "2026-02-10T09:15:00.000Z",
+      "version": 1,
+      "isDeleted": false,
+      "retentionStatus": "active"
+    },
+    {
+      "id": "doc_arch_spec",
+      "name": "Zero-Trust Architecture Blueprint",
+      "description": "Network micro-segmentation and KMS specification.",
+      "originalFilename": "Security_Architecture_Blueprint.docx",
+      "ownerId": "usr_owner_001",
+      "ownerEmail": "owner@trustvault.local",
+      "category": "Technical",
+      "mimeType": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "size": 54,
+      "sha256Hash": "78bed7921f9d2196339760eea5657d0955eca51e86cbe5f80a22784cdbdc2c8c",
+      "storageKey": "obj_a39b3b39-d742-462e-88a2-5720495fbf6c.bin",
+      "createdAt": "2026-02-20T11:45:00.000Z",
+      "updatedAt": "2026-02-20T11:45:00.000Z",
+      "version": 1,
+      "isDeleted": false,
+      "retentionStatus": "active"
+    }
+  ],
+  "grants": [
+    {
+      "id": "grnt_001_viewer_msa",
+      "documentId": "doc_msa_2026",
+      "grantorId": "usr_owner_001",
+      "grantorEmail": "owner@trustvault.local",
+      "granteeId": "usr_viewer_001",
+      "granteeEmail": "viewer@trustvault.local",
+      "permissionLevel": "READ",
+      "createdAt": "2026-01-16T11:00:00.000Z",
+      "expiresAt": "2026-12-10T09:55:33.276Z",
+      "isActive": true
+    },
+    {
+      "id": "test_grant_1794305948401",
+      "documentId": "doc_msa_2026",
+      "grantorId": "usr_owner_001",
+      "grantorEmail": "owner@trustvault.local",
+      "granteeId": "usr_other_001",
+      "granteeEmail": "other@trustvault.local",
+      "permissionLevel": "READ",
+      "createdAt": "2026-11-10T10:19:08.401Z",
+      "isActive": false,
+      "revokedAt": "2026-11-10T10:19:08.401Z"
+    },
+    {
+      "id": "grnt_6347458b-1b45-42c2-b848-b332af426cd9",
+      "documentId": "doc_msa_2026",
+      "grantorId": "usr_owner_001",
+      "grantorEmail": "owner@trustvault.local",
+      "granteeId": "usr_other_001",
+      "granteeEmail": "other@trustvault.local",
+      "permissionLevel": "READ",
+      "createdAt": "2026-11-10T10:33:26.966Z",
+      "expiresAt": null,
+      "isActive": false,
+      "revokedAt": "2026-11-10T10:33:26.974Z"
+    }
+  ],
+  "versions": [],
+  "alerts": [
+    {
+      "severity": "MEDIUM",
+      "type": "FAILED_LOGIN_ATTEMPT",
+      "description": "Failed login attempt for account owner@trustvault.local",
+      "actorId": "usr_owner_001",
+      "actorEmail": "owner@trustvault.local",
+      "ip": "127.0.0.1",
+      "id": "alt_e737accd-26fa-496f-ac9b-70d09a1d77fd",
+      "timestamp": "2026-11-10T10:33:27.044Z"
+    },
+    {
+      "severity": "MEDIUM",
+      "type": "UNAUTHORIZED_DOWNLOAD_ATTEMPT",
+      "description": "Blocked download attempt on 'Master Services Agreement 2026' (doc_msa_2026) by other@trustvault.local (viewer)",
+      "actorId": "usr_other_001",
+      "actorEmail": "other@trustvault.local",
+      "documentId": "doc_msa_2026",
+      "ip": "127.0.0.1",
+      "id": "alt_cf69d9f9-1ef4-4129-a1ff-dc406469c5d7",
+      "timestamp": "2026-11-10T10:33:26.979Z"
+    },
+    {
+      "severity": "HIGH",
+      "type": "UNAUTHORIZED_DOWNLOAD_ATTEMPT",
+      "description": "Blocked download attempt on 'Q3 Financial Audit & Ledger Reconciliation' (doc_audit_q3) by admin@trustvault.local (admin)",
+      "actorId": "usr_admin_001",
+      "actorEmail": "admin@trustvault.local",
+      "documentId": "doc_audit_q3",
+      "ip": "127.0.0.1",
+      "id": "alt_dd8c541d-711e-4937-89db-565771b742f1",
+      "timestamp": "2026-11-10T10:33:26.937Z"
+    },
+    {
+      "severity": "MEDIUM",
+      "type": "UNAUTHORIZED_DOWNLOAD_ATTEMPT",
+      "description": "Blocked download attempt on 'Q3 Financial Audit & Ledger Reconciliation' (doc_audit_q3) by other@trustvault.local (viewer)",
+      "actorId": "usr_other_001",
+      "actorEmail": "other@trustvault.local",
+      "documentId": "doc_audit_q3",
+      "ip": "127.0.0.1",
+      "id": "alt_214e3f5c-2348-4ced-96de-3966cdbb711a",
+      "timestamp": "2026-11-10T10:33:26.931Z"
+    }
+  ]
+}

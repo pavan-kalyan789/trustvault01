@@ -6,6 +6,7 @@
 
 import express, { type Request, type Response, type NextFunction } from 'express';
 import cors from 'cors';
+import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { seedInitialData } from './src/server/seed.js';
@@ -144,22 +145,25 @@ async function startServer() {
 
   // Check dev mode vs production
   const isProd = process.env.NODE_ENV === 'production';
-  if (!isProd) {
-    // Vite Dev Server middleware integration
+  const distPath = path.resolve(__dirname, 'dist');
+  const indexPath = path.join(distPath, 'index.html');
+
+  if (isProd && fs.existsSync(indexPath)) {
+    // Serve production static build
+    app.use(express.static(distPath));
+    app.get('*', (req: Request, res: Response) => {
+      res.sendFile(indexPath);
+    });
+    console.log('[TrustVault] Production static dist attached.');
+  } else {
+    // Vite Dev Server middleware integration (or fallback if dist missing)
     const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true },
       appType: 'spa'
     });
     app.use(vite.middlewares);
-    console.log('[TrustVault] Vite dev middleware attached.');
-  } else {
-    // Serve production static build
-    const distPath = path.resolve(__dirname, 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req: Request, res: Response) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
+    console.log('[TrustVault] Vite middleware attached.');
   }
 
   app.listen(PORT, '0.0.0.0', () => {
