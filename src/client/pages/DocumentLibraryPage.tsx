@@ -52,6 +52,7 @@ export const DocumentLibraryPage: React.FC<DocumentLibraryPageProps> = ({
   const [selectedCategory, setSelectedCategory] = useState('ALL');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('table');
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchDocs = async () => {
     try {
@@ -62,8 +63,8 @@ export const DocumentLibraryPage: React.FC<DocumentLibraryPageProps> = ({
         adminView: user?.role === 'admin'
       });
       setDocuments(res.documents);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to fetch documents.');
     } finally {
       setLoading(false);
     }
@@ -77,23 +78,24 @@ export const DocumentLibraryPage: React.FC<DocumentLibraryPageProps> = ({
   }, [searchQuery, selectedCategory]);
 
   const handleDownload = async (doc: DocumentRecord) => {
+    setActionError(null);
     setDownloadingId(doc.id);
     try {
       await api.downloadDocument(doc.id, doc.originalFilename);
     } catch (err: any) {
-      alert(`Download Error: ${err.message}`);
+      setActionError(`Download Error: ${err.message}`);
     } finally {
       setDownloadingId(null);
     }
   };
 
   const handleDelete = async (doc: DocumentRecord) => {
-    if (!confirm(`Are you sure you want to soft-delete '${doc.name}'?`)) return;
+    setActionError(null);
     try {
       await api.deleteDocument(doc.id);
       await fetchDocs();
     } catch (err: any) {
-      alert(`Delete Error: ${err.message}`);
+      setActionError(`Delete Error: ${err.message}`);
     }
   };
 
@@ -120,6 +122,13 @@ export const DocumentLibraryPage: React.FC<DocumentLibraryPageProps> = ({
           </button>
         )}
       </div>
+
+      {actionError && (
+        <div className="p-3 bg-red-950/40 border border-red-500/30 rounded-xl text-red-300 text-xs flex items-center justify-between">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-200 text-xs font-bold ml-2">Dismiss</button>
+        </div>
+      )}
 
       {/* Search and Category Filter Toolbar */}
       <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 space-y-4">

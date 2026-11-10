@@ -11,7 +11,9 @@ import type { AuditAction, AuditEvent, AuditOutcome, AuditCheckpoint, UserRole }
 // Server-side HMAC Secret (defaults to environment or deterministic secure key)
 const HMAC_SECRET = process.env.AUDIT_HMAC_SECRET || 'trustvault_enterprise_secure_hmac_secret_2026_key';
 export const GENESIS_HASH = '0000000000000000000000000000000000000000000000000000000000000000genesis';
-const JSON_AUDIT_FILE = path.resolve(process.cwd(), 'vault_audit.json');
+const DATA_DIR = process.env.DATA_DIR || process.cwd();
+const JSON_AUDIT_FILE = path.resolve(DATA_DIR, 'vault_audit.json');
+const JSON_AUDIT_BAK = path.resolve(DATA_DIR, 'vault_audit.json.bak');
 
 export interface AuditWritePayload {
   actorId: string;
@@ -38,22 +40,27 @@ export class AuditEngine {
   }
 
   public loadFromJson(): boolean {
-    try {
-      if (fs.existsSync(JSON_AUDIT_FILE)) {
-        const raw = fs.readFileSync(JSON_AUDIT_FILE, 'utf-8');
-        if (raw && raw.trim()) {
-          const data = JSON.parse(raw);
-          if (Array.isArray(data.events)) {
-            this.events = data.events;
+    const candidates = [JSON_AUDIT_FILE, JSON_AUDIT_BAK];
+    for (const targetPath of candidates) {
+      try {
+        if (fs.existsSync(targetPath)) {
+          const raw = fs.readFileSync(targetPath, 'utf-8');
+          if (raw && raw.trim().length > 0) {
+            const data = JSON.parse(raw);
+            if (data && typeof data === 'object') {
+              if (Array.isArray(data.events)) {
+                this.events = data.events;
+              }
+              if (Array.isArray(data.checkpoints)) {
+                this.checkpoints = data.checkpoints;
+              }
+              return true;
+            }
           }
-          if (Array.isArray(data.checkpoints)) {
-            this.checkpoints = data.checkpoints;
-          }
-          return true;
         }
+      } catch (err) {
+        console.warn(`[AuditEngine] Note reading audit from ${path.basename(targetPath)}:`, err);
       }
-    } catch (err) {
-      console.warn('[AuditEngine] Error reading audit JSON:', err);
     }
     return false;
   }
@@ -77,7 +84,19 @@ export class AuditEngine {
         events: this.events,
         checkpoints: this.checkpoints
       };
-      fs.writeFileSync(JSON_AUDIT_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+      const jsonContent = JSON.stringify(payload, null, 2);
+
+      // Backup existing file if valid
+      if (fs.existsSync(JSON_AUDIT_FILE)) {
+        try {
+          fs.copyFileSync(JSON_AUDIT_FILE, JSON_AUDIT_BAK);
+        } catch {}
+      }
+
+      // Atomic write: write to temp file then renameSync
+      const tmpFile = `${JSON_AUDIT_FILE}.tmp.${crypto.randomBytes(4).toString('hex')}`;
+      fs.writeFileSync(tmpFile, jsonContent, 'utf-8');
+      fs.renameSync(tmpFile, JSON_AUDIT_FILE);
     } catch (err) {
       console.error('[AuditEngine] Error writing audit JSON:', err);
     }

@@ -49,7 +49,7 @@ export const UserManagementPage: React.FC = () => {
 
   const handleToggleActive = async (targetUser: User) => {
     if (targetUser.id === currentUser?.id && targetUser.active) {
-      alert('Administrators cannot deactivate their own account.');
+      setFeedback({ type: 'error', text: 'Administrators cannot deactivate their own account.' });
       return;
     }
 

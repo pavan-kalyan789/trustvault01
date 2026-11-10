@@ -35,14 +35,15 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   const [documents, setDocuments] = useState<DocumentRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const fetchDocs = async () => {
     try {
       setLoading(true);
       const res = await api.getDocuments();
       setDocuments(res.documents);
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setActionError(err.message || 'Failed to load documents.');
     } finally {
       setLoading(false);
     }
@@ -56,11 +57,12 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
   const sharedWithMe = documents.filter(d => d.ownerId !== user?.id);
 
   const handleDownload = async (doc: DocumentRecord) => {
+    setActionError(null);
     setDownloadingId(doc.id);
     try {
       await api.downloadDocument(doc.id, doc.originalFilename);
     } catch (err: any) {
-      alert(`Download Error: ${err.message}`);
+      setActionError(`Download Error: ${err.message}`);
     } finally {
       setDownloadingId(null);
     }
@@ -68,6 +70,12 @@ export const OwnerDashboard: React.FC<OwnerDashboardProps> = ({
 
   return (
     <div className="space-y-6">
+      {actionError && (
+        <div className="p-3 bg-red-950/40 border border-red-500/30 rounded-xl text-red-300 text-xs flex items-center justify-between">
+          <span>{actionError}</span>
+          <button onClick={() => setActionError(null)} className="text-red-400 hover:text-red-200 text-xs font-bold">Dismiss</button>
+        </div>
+      )}
       {/* Top Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 to-slate-950 p-6 rounded-2xl border border-slate-800 shadow-xl">
         <div>

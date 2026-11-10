@@ -10,8 +10,8 @@ import path from 'node:path';
 
 export const MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024; // 10 MB
 
-// Store files in private root directory inaccessible via static web routes
-const VAULT_STORAGE_DIR = path.resolve(process.cwd(), 'vault_storage_private');
+const DATA_DIR = process.env.DATA_DIR || process.cwd();
+const VAULT_STORAGE_DIR = path.resolve(DATA_DIR, 'vault_storage_private');
 
 // Ensure vault directory exists
 if (!fs.existsSync(VAULT_STORAGE_DIR)) {

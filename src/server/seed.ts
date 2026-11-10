@@ -5,6 +5,8 @@
  */
 
 import crypto from 'node:crypto';
+import fs from 'node:fs';
+import path from 'node:path';
 import { vaultStore } from './store.js';
 import { auditEngine } from './audit.js';
 import { saveToPrivateStorage } from './storage.js';
@@ -71,27 +73,40 @@ export async function seedInitialData(): Promise<void> {
     }
   }
 
-  // Check if sample documents have already been seeded
-  if (vaultStore.documents.size > 0) {
-    return;
-  }
-
-  // 2. Create Physical Sample Files with genuine Magic Bytes
-  // Valid PDF header and minimal structure
+  // 2. Prepare physical sample buffers with genuine magic bytes
   const pdfBuffer = Buffer.from(
     '%PDF-1.7\n1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>\nendobj\n4 0 obj\n<< /Length 55 >>\nstream\nBT /F1 12 Tf 100 700 Td (TrustVault Verified Enterprise Document) Tj ET\nendstream\nendobj\nxref\n0 5\n0000000000 65535 f \n0000000010 00000 n \n0000000060 00000 n \n0000000117 00000 n \n0000000210 00000 n \ntrailer\n<< /Size 5 /Root 1 0 R >>\nstartxref\n315\n%%EOF\n',
     'utf-8'
   );
 
-  // Valid text buffer
   const txtBuffer = Buffer.from(
     'TRUSTVAULT SECURE ENTERPRISE DOCUMENT\n===================================\nDocument ID: SEC-2026-001\nClassification: RESTRICTED\nRetention: 7 Years\n\nThis document is protected under TrustVault enterprise access policies.',
     'utf-8'
   );
 
-  // Valid zip container buffer (ZIP magic bytes 50 4B 03 04)
   const zipHeader = Buffer.from([0x50, 0x4b, 0x03, 0x04, 0x14, 0x00, 0x00, 0x00, 0x08, 0x00]);
   const docxPayload = Buffer.concat([zipHeader, Buffer.from('word/document.xml - TrustVault Specification')]);
+
+  // Check if sample documents have already been seeded in store
+  if (vaultStore.documents.size > 0) {
+    // Verify physical files are still intact in private storage (e.g. after container redeploy)
+    for (const doc of vaultStore.documents.values()) {
+      if (doc.storageKey) {
+        const storageDir = path.resolve(process.env.DATA_DIR || process.cwd(), 'vault_storage_private');
+        const filePath = path.join(storageDir, path.basename(doc.storageKey));
+        if (!fs.existsSync(filePath)) {
+          let bufferToUse = txtBuffer;
+          if (doc.mimeType === 'application/pdf') bufferToUse = pdfBuffer;
+          else if (doc.mimeType?.includes('openxmlformats')) bufferToUse = docxPayload;
+          try {
+            fs.writeFileSync(filePath, bufferToUse, { mode: 0o600 });
+          } catch {}
+        }
+      }
+    }
+    return;
+  }
+
 
   const storageKeyPdf1 = await saveToPrivateStorage(pdfBuffer);
   const storageKeyPdf2 = await saveToPrivateStorage(pdfBuffer);

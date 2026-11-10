@@ -38,6 +38,19 @@ app.use((req: Request, res: Response, next: NextFunction) => {
 app.use(express.json({ limit: '2mb' }));
 app.use(express.urlencoded({ extended: true, limit: '2mb' }));
 
+// Catch JSON body syntax errors from express.json()
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof SyntaxError && 'body' in err) {
+    res.status(400).json({
+      success: false,
+      error: 'BadRequest',
+      message: 'Invalid JSON payload received in request body.'
+    });
+    return;
+  }
+  next(err);
+});
+
 // Restricted CORS
 app.use(
   cors({
@@ -78,12 +91,14 @@ app.use('/api/auth/session', (req: Request, res: Response, next: NextFunction) =
   next();
 });
 
-// Health check endpoint
-app.get('/api/health', (req: Request, res: Response) => {
-  res.json({
+// Health check endpoints (supports /api/health and standard container /healthz)
+app.get(['/api/health', '/healthz'], (req: Request, res: Response) => {
+  res.status(200).json({
+    success: true,
     status: 'HEALTHY',
     system: 'TrustVault Enterprise Core',
-    timestamp: new Date().toISOString()
+    timestamp: new Date().toISOString(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
@@ -96,15 +111,29 @@ app.use('/api/audit', auditRouter);
 app.use('/api/admin', adminRouter);
 app.use('/api/security', pentestRouter);
 
-// Centralized safe error handler (prevents information disclosure)
+// Explicit API 404 Handler
+// CRITICAL: Guarantees unmatched /api/* requests return JSON 404, never falling through to SPA index.html
+app.all('/api/*', (req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    error: 'NotFound',
+    message: `API endpoint ${req.method} ${req.originalUrl} not found.`
+  });
+});
+
+// Centralized safe error handler (prevents information disclosure and guarantees JSON format)
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error('[TrustVault Server Error]', err?.message || err);
   if (res.headersSent) {
     return next(err);
   }
-  res.status(err.status || 500).json({
-    error: 'InternalError',
-    message: process.env.NODE_ENV === 'production' ? 'An unexpected server error occurred.' : err.message
+  const statusCode = typeof err.status === 'number' && err.status >= 400 && err.status <= 599 ? err.status : 500;
+  res.status(statusCode).json({
+    success: false,
+    error: err.code || err.name || 'InternalServerError',
+    message: statusCode === 500 && process.env.NODE_ENV === 'production'
+      ? 'An unexpected server error occurred.'
+      : (err.message || 'Server error occurred.')
   });
 });
 
@@ -144,3 +173,4 @@ startServer().catch(err => {
 });
 
 export { app };
+

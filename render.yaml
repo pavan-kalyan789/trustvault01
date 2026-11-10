@@ -1,0 +1,24 @@
+# Render Blueprint for TrustVault Enterprise Deployment
+# Automatically provisions the web service, environment variables, and build pipeline.
+
+services:
+  - type: web
+    name: trustvault
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: AUDIT_HMAC_SECRET
+        generateValue: true
+      - key: DEMO_ADMIN_PASSWORD
+        value: TrustVault2026!Admin
+      - key: DEMO_OWNER_PASSWORD
+        value: TrustVault2026!Owner
+      - key: DEMO_VIEWER_PASSWORD
+        value: TrustVault2026!Viewer
+      - key: DEMO_OTHER_PASSWORD
+        value: TrustVault2026!Other

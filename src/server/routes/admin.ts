@@ -138,7 +138,7 @@ adminRouter.post('/json-database/import', authenticateUser, requireRole(['admin'
         actorId: req.user.id,
         actorEmail: req.user.email,
         actorRole: req.user.role,
-        action: 'METADATA_UPDATE',
+        action: 'ADMIN_ACTION',
         outcome: 'SUCCESS',
         ip: req.ip || '127.0.0.1',
         userAgent: req.headers['user-agent'] || 'unknown',

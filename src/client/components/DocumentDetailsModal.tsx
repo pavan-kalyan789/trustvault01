@@ -42,6 +42,7 @@ export const DocumentDetailsModal: React.FC<DocumentDetailsModalProps> = ({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [downloading, setDownloading] = useState(false);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const [versionFile, setVersionFile] = useState<File | null>(null);
   const [changeDescription, setChangeDescription] = useState('');
   const [uploadingVersion, setUploadingVersion] = useState(false);
@@ -90,11 +91,12 @@ export const DocumentDetailsModal: React.FC<DocumentDetailsModalProps> = ({
   }, [activeTab]);
 
   const handleDownload = async () => {
+    setDownloadError(null);
     setDownloading(true);
     try {
       await api.downloadDocument(doc.id, doc.originalFilename);
     } catch (err: any) {
-      alert(`Download Error: ${err.message}`);
+      setDownloadError(err.message || 'Download failed: access denied.');
     } finally {
       setDownloading(false);
     }
@@ -173,6 +175,13 @@ export const DocumentDetailsModal: React.FC<DocumentDetailsModalProps> = ({
             </button>
           </div>
         </div>
+
+        {downloadError && (
+          <div className="mx-6 mt-3 p-3 bg-red-950/40 border border-red-500/30 rounded-xl text-red-300 text-xs flex items-center justify-between">
+            <span>{downloadError}</span>
+            <button onClick={() => setDownloadError(null)} className="text-red-400 hover:text-red-200 text-xs font-bold ml-2">Dismiss</button>
+          </div>
+        )}
 
         {/* Tab Navigation */}
         <div className="px-6 border-b border-slate-800 bg-slate-950/30 flex gap-4 text-xs font-medium">

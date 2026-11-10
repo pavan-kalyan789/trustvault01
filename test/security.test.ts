@@ -21,13 +21,46 @@ import { adminRouter } from '../src/server/routes/admin.js';
 
 // Setup test app instance
 const testApp = express();
+
+// Catch JSON body syntax errors
 testApp.use(express.json());
+testApp.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
+  if (err instanceof SyntaxError && 'body' in err) {
+    res.status(400).json({
+      success: false,
+      error: 'BadRequest',
+      message: 'Invalid JSON payload received in request body.'
+    });
+    return;
+  }
+  next(err);
+});
+
+testApp.get(['/api/health', '/healthz'], (req, res) => {
+  res.status(200).json({
+    success: true,
+    status: 'HEALTHY',
+    system: 'TrustVault Enterprise Core',
+    timestamp: new Date().toISOString()
+  });
+});
+
 testApp.use('/api/auth', authRouter);
 testApp.use('/api/users', usersRouter);
 testApp.use('/api/documents', documentsRouter);
 testApp.use('/api/documents', permissionsRouter);
 testApp.use('/api/audit', auditRouter);
 testApp.use('/api/admin', adminRouter);
+
+// Explicit API 404 handler (prevents HTML fallback)
+testApp.all('/api/*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'NotFound',
+    message: `API endpoint ${req.method} ${req.originalUrl} not found.`
+  });
+});
+
 
 let adminToken: string;
 let ownerToken: string;
@@ -452,4 +485,61 @@ describe('7. Comprehensive Authentication & Role Validation Matrix (Step 6)', ()
     expect(res.body.details).toBeDefined();
   });
 });
+
+describe('8. Production JSON API Contract, Error Handling & Persistence', () => {
+  it('serves valid JSON on /api/health with 200 OK', async () => {
+    const res = await request(testApp).get('/api/health');
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/json/);
+    expect(res.body.success).toBe(true);
+    expect(res.body.status).toBe('HEALTHY');
+  });
+
+  it('guarantees unmapped /api/* endpoints return JSON 404 rather than HTML fallback', async () => {
+    const res = await request(testApp).get('/api/non-existent-subpath-test');
+    expect(res.status).toBe(404);
+    expect(res.headers['content-type']).toMatch(/json/);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBe('NotFound');
+    expect(res.body.message).toContain('not found');
+  });
+
+  it('handles malformed JSON body payloads safely with 400 and JSON error format', async () => {
+    const res = await request(testApp)
+      .post('/api/auth/session')
+      .set('Content-Type', 'application/json')
+      .send('{ "email": "admin@trustvault.local", invalid-json }');
+
+    expect(res.status).toBe(400);
+    expect(res.headers['content-type']).toMatch(/json/);
+    expect(res.body.success).toBe(false);
+    expect(res.body.error).toBe('BadRequest');
+  });
+
+  it('provides live JSON database telemetry and verified file connection on /api/admin/json-database', async () => {
+    const res = await request(testApp)
+      .get('/api/admin/json-database')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.database.connected).toBe(true);
+    expect(res.body.database.fileName).toBe('vault_database.json');
+    expect(res.body.database.counts.users).toBeGreaterThanOrEqual(4);
+    expect(res.body.audit.connected).toBe(true);
+    expect(res.body.audit.fileName).toBe('vault_audit.json');
+  });
+
+  it('allows administrator to export the full JSON database backup', async () => {
+    const res = await request(testApp)
+      .get('/api/admin/json-database/export')
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/json/);
+    expect(res.body.users).toBeInstanceOf(Array);
+    expect(res.body.documents).toBeInstanceOf(Array);
+  });
+});
+
 

@@ -4,6 +4,7 @@
  */
 
 import React, { useState } from 'react';
+import { api } from '../api.js';
 import {
   Shield,
   Lock,
@@ -13,7 +14,8 @@ import {
   Terminal,
   CheckCircle2,
   Copy,
-  Check
+  Check,
+  Download
 } from 'lucide-react';
 
 export const SettingsPage: React.FC = () => {
@@ -96,12 +98,71 @@ service cloud.firestore {
         <div className="bg-slate-900/80 p-4 rounded-xl border border-slate-800">
           <div className="flex items-center gap-2 text-indigo-400 font-semibold mb-1">
             <Database className="w-4 h-4" />
-            <span>Object Vault</span>
+            <span>Connected JSON DB</span>
           </div>
-          <div className="text-slate-200 font-bold text-sm">UUID Key Isolation</div>
+          <div className="text-slate-200 font-bold text-sm">vault_database.json</div>
           <p className="text-slate-400 text-[11px] mt-1 leading-snug">
-            Files stored outside web root with random tokens. Streamed through authenticated memory proxy.
+            Atomic write transactions with automatic .bak fallback. Compatible with Render persistent disks.
           </p>
+        </div>
+      </div>
+
+      {/* Connected JSON Database Live Telemetry & Export */}
+      <div className="bg-slate-900/90 rounded-2xl border border-slate-800 p-5 space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2">
+            <Database className="w-4 h-4 text-emerald-400" />
+            <div>
+              <h2 className="font-semibold text-white text-sm">Connected JSON Storage & Database Engine</h2>
+              <p className="text-slate-400 text-[11px]">Direct disk persistence with zero external setup friction</p>
+            </div>
+          </div>
+          <span className="px-2.5 py-1 rounded-full text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+            Connected • Real-time Sync
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-[11px]">
+          <div className="p-3 bg-slate-950/70 rounded-xl border border-slate-800 space-y-1">
+            <div className="text-slate-400 font-mono text-[10px]">DATABASE FILE</div>
+            <div className="text-white font-semibold flex items-center justify-between">
+              <span>vault_database.json</span>
+              <span className="text-emerald-400 text-[10px]">SYNCHRONIZED</span>
+            </div>
+            <p className="text-slate-400 text-[10px]">
+              Stores accounts, documents metadata, granular grants, and version trees.
+            </p>
+          </div>
+
+          <div className="p-3 bg-slate-950/70 rounded-xl border border-slate-800 space-y-1">
+            <div className="text-slate-400 font-mono text-[10px]">AUDIT LEDGER FILE</div>
+            <div className="text-white font-semibold flex items-center justify-between">
+              <span>vault_audit.json</span>
+              <span className="text-blue-400 text-[10px]">CRYPTOGRAPHICALLY CHAINED</span>
+            </div>
+            <p className="text-slate-400 text-[10px]">
+              Immutable HMAC-SHA256 hash-chain checkpoints with tamper detection.
+            </p>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3 pt-1">
+          <button
+            onClick={async () => {
+              try {
+                await api.exportJsonDatabase();
+              } catch (e: any) {
+                console.error(e);
+              }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-[11px] transition"
+          >
+            <Download className="w-3.5 h-3.5" />
+            Export JSON Database
+          </button>
+          <span className="text-slate-400 text-[10px]">
+            Writes to disk are atomic via temporary file swap and .bak safety copy.
+          </span>
         </div>
       </div>
 

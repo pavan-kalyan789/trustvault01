@@ -99,6 +99,18 @@ All identified high and critical risks have been remediated with server-side con
 - **Regression Test:** `test/security.test.ts` -> *"search endpoint strictly isolates results and does not disclose unauthorized document metadata"*.
 - **Remaining Risk:** Zero.
 
+### Vulnerability 9: API SPA Fallback Interception & Unexpected HTML Error Responses
+- **Attack / Failure Method:** Unmatched API endpoints (`/api/*`), proxy disruptions, or syntax errors returned HTML web pages (`<!doctype html>` or Express default HTML stack traces). Client calls calling `response.json()` encountered unhandled exceptions (`SyntaxError: Unexpected token '<'` or `Unexpected end of JSON input`), triggering client-side crashes and denial of service. Additionally, server crashes during direct disk writes could cause JSON truncation.
+- **Severity:** HIGH
+- **Affected Endpoints:** All `/api/*` endpoints, health routes, and client API communication.
+- **Fix:** 
+  1. Implemented explicit Express `app.all('/api/*', ...)` JSON 404 handler registered before static assets and SPA wildcards, guaranteeing API requests never fall through to `index.html`.
+  2. Implemented dedicated JSON syntax error-catching middleware for `express.json()`.
+  3. Upgraded `src/client/api.ts` with `safeParseResponse` that detects HTML content-types/doctypes, handles empty 0-byte bodies safely, and converts proxy errors to human-readable JSON messages without exposing internal stack traces.
+  4. Implemented atomic file writing (`.tmp` + POSIX `renameSync`) and automatic `.bak` backup recovery in `VaultStore` and `AuditEngine` to prevent file corruption or data truncation on Render/container restarts.
+- **Regression Test:** `test/security.test.ts` -> Section 8 tests (*"serves valid JSON on /api/health"*, *"guarantees unmapped /api/* endpoints return JSON 404 rather than HTML fallback"*, *"handles malformed JSON body payloads safely"*, *"provides live JSON database telemetry"*, *"allows administrator to export the full JSON database backup"*).
+- **Remaining Risk:** Zero.
+
 ---
 
 ## 3. Mutation Testing Verification
@@ -138,6 +150,9 @@ To prove that the automated security test suite is genuinely sensitive to author
 | Audit Trail | Tampering detection | Modified event action simulation | **PASSED (Detected)** |
 | Audit Trail | Concurrent write serialization| 6 concurrent writes | **PASSED (Unbroken)** |
 | Data Protection | Search metadata isolation | `GET /api/documents` | **PASSED (Isolated)** |
+| API Resilience | JSON Error & HTML Shield | Unmapped `/api/*` routes | **PASSED (JSON 404)** |
+| API Resilience | Health & JSON Parsing | `GET /api/health` | **PASSED (JSON 200)** |
+| Persistence | Atomic write & backup fallback| `vault_database.json` & `.bak` | **PASSED (Verified)** |
 | Mutation Testing| Authorization bypass test | Mutation test harness | **PASSED (Verified)** |
 
 ---
@@ -146,6 +161,7 @@ To prove that the automated security test suite is genuinely sensitive to author
 
 - **TypeScript Compilation:** Passed with zero errors (`tsc --noEmit`).
 - **Linter Check:** Clean.
-- **Automated Test Suite:** 20/20 Vitest integration tests passed (`npm run test`).
+- **Automated Test Suite:** 36/36 Vitest integration tests passed (`npm run test`).
 - **Production Build:** `npm run build` succeeds.
 - **Status:** **APPROVED FOR DEPLOYMENT**.
+

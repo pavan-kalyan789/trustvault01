@@ -17,7 +17,15 @@ import type {
   DocumentCategory
 } from './types.js';
 
-const JSON_DB_FILE = path.resolve(process.cwd(), 'vault_database.json');
+const DATA_DIR = process.env.DATA_DIR || process.cwd();
+if (!fs.existsSync(DATA_DIR)) {
+  try {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch {}
+}
+
+const JSON_DB_FILE = path.resolve(DATA_DIR, 'vault_database.json');
+const JSON_DB_BAK = path.resolve(DATA_DIR, 'vault_database.json.bak');
 
 export class VaultStore {
   public users: Map<string, User> = new Map();
@@ -32,34 +40,43 @@ export class VaultStore {
   }
 
   /**
-   * Loads initial state from the connected JSON database file if present
+   * Loads initial state from the connected JSON database file or backup file
    */
   public loadFromJson(): boolean {
-    try {
-      if (fs.existsSync(JSON_DB_FILE)) {
-        const raw = fs.readFileSync(JSON_DB_FILE, 'utf-8');
-        if (raw && raw.trim()) {
-          const data = JSON.parse(raw);
-          if (Array.isArray(data.users)) {
-            this.users = new Map(data.users.map((u: User) => [u.id, u]));
+    const candidates = [JSON_DB_FILE, JSON_DB_BAK];
+    for (const targetPath of candidates) {
+      try {
+        if (fs.existsSync(targetPath)) {
+          const raw = fs.readFileSync(targetPath, 'utf-8');
+          if (raw && raw.trim().length > 0) {
+            const data = JSON.parse(raw);
+            if (data && typeof data === 'object') {
+              let loadedAny = false;
+              if (Array.isArray(data.users) && data.users.length > 0) {
+                this.users = new Map(data.users.map((u: User) => [u.id, u]));
+                loadedAny = true;
+              }
+              if (Array.isArray(data.documents)) {
+                this.documents = new Map(data.documents.map((d: DocumentRecord) => [d.id, d]));
+              }
+              if (Array.isArray(data.grants)) {
+                this.grants = new Map(data.grants.map((g: DocumentGrant) => [g.id, g]));
+              }
+              if (Array.isArray(data.versions)) {
+                this.versions = new Map(data.versions.map((v: DocumentVersion) => [v.id, v]));
+              }
+              if (Array.isArray(data.alerts)) {
+                this.alerts = data.alerts;
+              }
+              if (loadedAny) {
+                return true;
+              }
+            }
           }
-          if (Array.isArray(data.documents)) {
-            this.documents = new Map(data.documents.map((d: DocumentRecord) => [d.id, d]));
-          }
-          if (Array.isArray(data.grants)) {
-            this.grants = new Map(data.grants.map((g: DocumentGrant) => [g.id, g]));
-          }
-          if (Array.isArray(data.versions)) {
-            this.versions = new Map(data.versions.map((v: DocumentVersion) => [v.id, v]));
-          }
-          if (Array.isArray(data.alerts)) {
-            this.alerts = data.alerts;
-          }
-          return true;
         }
+      } catch (err) {
+        console.warn(`[VaultStore] Note reading database from ${path.basename(targetPath)}:`, err);
       }
-    } catch (err) {
-      console.warn('[VaultStore] Note reading JSON database (will re-seed):', err);
     }
     return false;
   }
@@ -77,7 +94,8 @@ export class VaultStore {
   }
 
   /**
-   * Persists database state synchronously to vault_database.json
+   * Persists database state atomically to vault_database.json
+   * Writes to a temp file and renames atomically to prevent corrupted or truncated files.
    */
   public persistToJsonSync(): void {
     try {
@@ -92,7 +110,19 @@ export class VaultStore {
         versions: Array.from(this.versions.values()),
         alerts: this.alerts
       };
-      fs.writeFileSync(JSON_DB_FILE, JSON.stringify(payload, null, 2), 'utf-8');
+      const jsonContent = JSON.stringify(payload, null, 2);
+
+      // Backup existing file if valid
+      if (fs.existsSync(JSON_DB_FILE)) {
+        try {
+          fs.copyFileSync(JSON_DB_FILE, JSON_DB_BAK);
+        } catch {}
+      }
+
+      // Atomic write: write to unique temp file then rename
+      const tmpFile = `${JSON_DB_FILE}.tmp.${crypto.randomBytes(4).toString('hex')}`;
+      fs.writeFileSync(tmpFile, jsonContent, 'utf-8');
+      fs.renameSync(tmpFile, JSON_DB_FILE);
     } catch (err) {
       console.error('[VaultStore] Error writing to vault_database.json:', err);
     }

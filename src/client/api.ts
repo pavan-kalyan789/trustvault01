@@ -119,8 +119,11 @@ export interface JsonDatabaseResponse {
 }
 
 
+export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL || '').replace(/\/$/, '');
+
 class ApiService {
   private token: string | null = null;
+  private baseUrl: string = API_BASE_URL;
 
   constructor() {
     this.token = localStorage.getItem('tv_auth_token');
@@ -151,11 +154,14 @@ class ApiService {
   }
 
   /**
-   * Safe fetch with network failure handling
+   * Safe fetch with network failure handling and optional base URL
    */
-  private async safeFetch(url: string, init?: RequestInit): Promise<Response> {
+  private async safeFetch(endpoint: string, init?: RequestInit): Promise<Response> {
     try {
-      return await fetch(url, init);
+      const fullUrl = endpoint.startsWith('http://') || endpoint.startsWith('https://')
+        ? endpoint
+        : `${this.baseUrl}${endpoint}`;
+      return await fetch(fullUrl, init);
     } catch (networkError: any) {
       throw new Error(
         'Unable to connect to the TrustVault security server. Please check your network connection.'
@@ -166,19 +172,21 @@ class ApiService {
   /**
    * Safe response parsing:
    * - Reads body as text first to prevent "Unexpected end of JSON input"
-   * - Handles empty responses (0 bytes)
-   * - Handles non-JSON HTML error pages (e.g., 502/504 Bad Gateway from proxies)
+   * - Handles empty responses (0 bytes) without crashing
+   * - Detects HTML pages returned by proxies or missing endpoints
    * - Never exposes raw stack traces or internal exception details
    */
   private async safeParseResponse<T>(res: Response): Promise<T> {
     const rawText = await res.text().catch(() => '');
+    const contentType = res.headers.get('content-type') || '';
+    const isHtml = contentType.includes('text/html') || rawText.trim().startsWith('<!doctype') || rawText.trim().startsWith('<html');
+
     let parsedData: any = null;
 
-    if (rawText && rawText.trim().length > 0) {
+    if (!isHtml && rawText && rawText.trim().length > 0) {
       try {
         parsedData = JSON.parse(rawText);
       } catch {
-        // Non-JSON response (e.g. HTML error page or raw proxy status)
         parsedData = null;
       }
     }
@@ -186,9 +194,11 @@ class ApiService {
     if (!res.ok) {
       let errorMessage = `Request failed (HTTP ${res.status})`;
 
-      if (parsedData && typeof parsedData === 'object') {
+      if (isHtml) {
+        errorMessage = `The API endpoint returned an HTML error page (HTTP ${res.status}). Verify that the backend service is running.`;
+      } else if (parsedData && typeof parsedData === 'object') {
         errorMessage = parsedData.message || parsedData.error || errorMessage;
-      } else if (rawText && rawText.length > 0 && rawText.length < 200 && !rawText.includes('<!DOCTYPE')) {
+      } else if (rawText && rawText.length > 0 && rawText.length < 200) {
         errorMessage = rawText.trim();
       } else {
         // Human-friendly fallback messages based on status codes
@@ -225,14 +235,18 @@ class ApiService {
       throw new Error(errorMessage);
     }
 
-    // 204 No Content response
-    if (res.status === 204) {
-      return {} as T;
+    // 204 No Content response or empty 200 response
+    if (res.status === 204 || (!rawText.trim() && res.ok)) {
+      return { success: true } as unknown as T;
+    }
+
+    if (isHtml) {
+      throw new Error('API server returned an HTML webpage instead of JSON. Ensure the API endpoint is registered.');
     }
 
     // Success response must contain valid JSON payload
     if (parsedData === null) {
-      throw new Error('Security server returned an empty or invalid JSON response.');
+      throw new Error('Security server returned an invalid JSON response.');
     }
 
     return parsedData as T;
@@ -303,7 +317,8 @@ class ApiService {
     category?: string;
     adminView?: boolean;
   }): Promise<{ documents: DocumentRecord[] }> {
-    const url = new URL('/api/documents', window.location.origin);
+    const base = this.baseUrl || window.location.origin;
+    const url = new URL('/api/documents', base);
     if (params?.q) url.searchParams.set('q', params.q);
     if (params?.category) url.searchParams.set('category', params.category);
     if (params?.adminView) url.searchParams.set('adminView', 'true');
@@ -459,7 +474,8 @@ class ApiService {
     actorEmail?: string;
     limit?: number;
   }): Promise<{ events: AuditEvent[] }> {
-    const url = new URL('/api/audit/events', window.location.origin);
+    const base = this.baseUrl || window.location.origin;
+    const url = new URL('/api/audit/events', base);
     if (params?.action) url.searchParams.set('action', params.action);
     if (params?.outcome) url.searchParams.set('outcome', params.outcome);
     if (params?.actorEmail) url.searchParams.set('actorEmail', params.actorEmail);
